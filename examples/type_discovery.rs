@@ -1,0 +1,149 @@
+//! Discovering item types from a directory layout.
+//!
+//! Demonstrates scanning a base directory for type configs and then
+//! performing operations on the discovered types.
+//!
+//! Run with: cargo run --example type_discovery
+
+use mdstore::config::{discover_types, write_type_config};
+use mdstore::{CreateOptions, Filters, TypeConfig, TypeFeatures};
+use std::collections::HashMap;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    let base_dir = temp.path();
+
+    // Set up multiple item types
+    let issue_config = TypeConfig {
+        name: "Issue".to_string(),
+        plural: "issues".to_string(),
+        identifier: "uuid".to_string(),
+        features: TypeFeatures {
+            display_number: true,
+            status: true,
+            priority: true,
+            assets: false,
+            org_sync: false,
+            move_item: true,
+            duplicate: true,
+        },
+        statuses: vec!["open".to_string(), "closed".to_string()],
+        default_status: Some("open".to_string()),
+        priority_levels: Some(3),
+        custom_fields: Vec::new(),
+    };
+
+    let epic_config = TypeConfig {
+        name: "Epic".to_string(),
+        plural: "epics".to_string(),
+        identifier: "slug".to_string(),
+        features: TypeFeatures {
+            display_number: true,
+            status: true,
+            priority: false,
+            ..TypeFeatures::default()
+        },
+        statuses: vec![
+            "draft".to_string(),
+            "active".to_string(),
+            "completed".to_string(),
+        ],
+        default_status: Some("draft".to_string()),
+        priority_levels: None,
+        custom_fields: Vec::new(),
+    };
+
+    let doc_config = TypeConfig {
+        name: "Doc".to_string(),
+        plural: "docs".to_string(),
+        identifier: "slug".to_string(),
+        features: TypeFeatures::default(),
+        statuses: Vec::new(),
+        default_status: None,
+        priority_levels: None,
+        custom_fields: Vec::new(),
+    };
+
+    // Write configs to disk
+    write_type_config(&base_dir.join("issues"), &issue_config).await?;
+    write_type_config(&base_dir.join("epics"), &epic_config).await?;
+    write_type_config(&base_dir.join("docs"), &doc_config).await?;
+    println!("Wrote 3 type configs to {}", base_dir.display());
+
+    // Discover all types
+    let types = discover_types(base_dir).await?;
+    println!("\nDiscovered {} item types:", types.len());
+    for t in &types {
+        println!(
+            "  {} ({}) -- identifier: {}, statuses: {:?}",
+            t.name, t.plural, t.identifier, t.statuses
+        );
+    }
+
+    // Create items in each discovered type
+    for t in &types {
+        let type_dir = base_dir.join(&t.plural);
+        let item = mdstore::create(
+            &type_dir,
+            t,
+            CreateOptions {
+                title: format!("Sample {}", t.name),
+                body: format!("This is a sample {} item.", t.name.to_lowercase()),
+                id: None,
+                status: t.default_status.clone(),
+                priority: if t.features.priority { Some(2) } else { None },
+                custom_fields: HashMap::new(),
+            },
+        )
+        .await?;
+        println!("\nCreated {} '{}' (id: {})", t.name, item.title, item.id);
+    }
+
+    // List items across all types
+    println!("\n--- All items ---");
+    for t in &types {
+        let type_dir = base_dir.join(&t.plural);
+        let items = mdstore::list(&type_dir, t, Filters::default()).await?;
+        for item in items {
+            println!(
+                "  [{}] {} ({})",
+                t.plural,
+                item.title,
+                item.frontmatter
+                    .status
+                    .as_deref()
+                    .unwrap_or("no status")
+            );
+        }
+    }
+
+    // Show the on-disk layout
+    println!("\nOn-disk layout:");
+    print_tree(base_dir, 0).await;
+
+    Ok(())
+}
+
+async fn print_tree(dir: &Path, depth: usize) {
+    let indent = "  ".repeat(depth);
+    if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
+        let mut names = Vec::new();
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            names.push((
+                entry.file_name().to_string_lossy().to_string(),
+                entry.file_type().await.map(|ft| ft.is_dir()).unwrap_or(false),
+            ));
+        }
+        names.sort();
+        for (name, is_dir) in names {
+            if is_dir {
+                println!("{indent}{name}/");
+                Box::pin(print_tree(&dir.join(&name), depth.saturating_add(1))).await;
+            } else {
+                println!("{indent}{name}");
+            }
+        }
+    }
+}

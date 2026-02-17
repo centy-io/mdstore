@@ -1,0 +1,81 @@
+[package]
+name = "mdstore"
+version = "0.1.0"
+edition = "2021"
+description = "A file-based storage engine that stores structured data as Markdown files with YAML frontmatter"
+authors = ["Centy Team"]
+license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+gray_matter = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1", features = ["full"] }
+thiserror = "1"
+uuid = { version = "1", features = ["v4"] }
+async-trait = "0.1"
+slug = "0.1.6"
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+# Enable pedantic lints
+pedantic = { level = "warn", priority = -1 }
+
+# Deny panic/unwrap/expect to enforce proper error handling
+# Test code is exempted via cfg_attr(test, allow(...)) in lib.rs
+panic = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic_in_result_fn = "deny"
+unwrap_in_result = "deny"
+exit = "deny"
+
+# Deny unvalidated arithmetic to prevent overflow panics in debug
+# and silent wrapping in release builds
+arithmetic_side_effects = "deny"
+
+# Deny direct indexing/slicing to prevent index-out-of-bounds panics
+# Use safe alternatives like .get(), .first(), .split_at() which return Option
+indexing_slicing = "deny"
+
+# Warn on long functions - enforces refactoring into smaller functions
+too_many_lines = "deny"
+
+# Allow noisy pedantic lints
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+module_name_repetitions = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+struct_excessive_bools = "allow"
+map_unwrap_or = "allow"
+single_match_else = "allow"
+unused_self = "allow"
+needless_pass_by_value = "allow"
+items_after_statements = "allow"
+match_same_arms = "allow"
+wildcard_imports = "allow"
+return_self_not_must_use = "allow"
+format_push_string = "allow"
+wrong_self_convention = "allow"
+too_many_arguments = "allow"
+enum_variant_names = "allow"
+assigning_clones = "allow"
+missing_panics_doc = "allow"
+default_trait_access = "allow"
+const_is_empty = "allow"
+manual_let_else = "allow"
+unused_async = "allow"
+struct_field_names = "allow"
+trivially_copy_pass_by_ref = "allow"
