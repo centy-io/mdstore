@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --example type_discovery
 
-use mdstore::config::{discover_types, write_type_config, IdStrategy};
-use mdstore::{CreateOptions, Filters, TypeConfig, TypeFeatures};
+use mdstore::config::{write_type_config, IdStrategy};
+use mdstore::{discover_types, CreateOptions, Filters, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
 use std::path::Path;
 
