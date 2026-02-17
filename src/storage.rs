@@ -171,10 +171,7 @@ pub async fn get(type_dir: &Path, id: &str) -> Result<Item, StoreError> {
 }
 
 /// List items with optional filters.
-pub async fn list(
-    type_dir: &Path,
-    filters: Filters,
-) -> Result<Vec<Item>, StoreError> {
+pub async fn list(type_dir: &Path, filters: Filters) -> Result<Vec<Item>, StoreError> {
     if !type_dir.exists() {
         return Ok(Vec::new());
     }
@@ -209,7 +206,7 @@ pub async fn list(
 
         items.push(Item {
             id,
-    
+
             title,
             body,
             frontmatter,
@@ -485,7 +482,7 @@ pub async fn duplicate(
     Ok(DuplicateResult {
         item: Item {
             id: new_id,
-    
+
             title: new_title,
             body: source_item.body,
             frontmatter,
@@ -794,9 +791,7 @@ mod tests {
         assert_eq!(open.len(), 2);
 
         // List with limit
-        let limited = list(&type_dir, Filters::new().with_limit(1))
-            .await
-            .unwrap();
+        let limited = list(&type_dir, Filters::new().with_limit(1)).await.unwrap();
         assert_eq!(limited.len(), 1);
 
         // List with offset
