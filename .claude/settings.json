@@ -49,7 +49,9 @@
       "Bash(git tag:*)",
       "Bash(cargo tree:*)",
       "Bash(gh run rerun:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh repo list:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
