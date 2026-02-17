@@ -4,6 +4,39 @@
 
 - Rust toolchain (see `rust-version` in `Cargo.toml` for MSRV)
 - `rustfmt` and `clippy` components installed
+- [pnpm](https://pnpm.io/) (for Git hooks)
+
+## Setup
+
+```sh
+pnpm install
+```
+
+This automatically runs `husky` via the `prepare` script to install the Git hooks.
+
+## Git hooks
+
+This project uses [Husky](https://typicode.github.io/husky/) to enforce code quality via Git hooks and [commitlint](https://commitlint.js.org/) to enforce [Conventional Commits](https://www.conventionalcommits.org/).
+
+| Hook | Runs | Purpose |
+|---|---|---|
+| `pre-commit` | `cargo fmt --check`, `cargo clippy -- -D warnings` | Prevent unformatted or lint-failing code from being committed |
+| `pre-push` | `cargo test` | Prevent pushing code that breaks tests |
+| `commit-msg` | `commitlint` | Enforce Conventional Commits format |
+
+### Commit message format
+
+All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
 ## Development
 
