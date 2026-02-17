@@ -59,7 +59,7 @@
       "Bash(centy show:*)",
       "Bash(gh pr view:*)"
     ],
-    "deny": ["Bash(gh issue create:*)"]
+    "deny": ["Bash(gh issue create:*)", "Bash(cargo publish:*)"]
   },
   "hooks": {
     "PreToolUse": [
