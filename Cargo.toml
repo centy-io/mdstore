@@ -2,9 +2,17 @@
 name = "mdstore"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.70"
 description = "A file-based storage engine that stores structured data as Markdown files with YAML frontmatter"
 authors = ["Centy Team"]
-license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
+license-file = "LICENSE.md"
+repository = "https://github.com/centy-io/mdstore"
+homepage = "https://github.com/centy-io/mdstore"
+documentation = "https://docs.rs/mdstore"
+readme = "README.md"
+keywords = ["markdown", "frontmatter", "storage", "yaml", "file-based"]
+categories = ["database", "filesystem"]
+exclude = [".github/"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
