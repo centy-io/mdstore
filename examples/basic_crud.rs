@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 fn issue_config() -> TypeConfig {
     TypeConfig {
         name: "Issue".to_string(),
-        plural: "issues".to_string(),
+
         identifier: IdStrategy::Uuid,
         features: TypeFeatures {
             display_number: true,
@@ -87,7 +87,8 @@ async fn demo_list_update_get(
     issue1: &Item,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // List all open issues
-    let open_issues = mdstore::list(type_dir, config, Filters::new().with_status("open")).await?;
+    let open_issues =
+        mdstore::list(type_dir, Filters::new().with_status("open")).await?;
     println!("\nOpen issues: {}", open_issues.len());
     for item in &open_issues {
         println!(
@@ -116,7 +117,7 @@ async fn demo_list_update_get(
     );
 
     // Get a specific issue
-    let fetched = mdstore::get(type_dir, config, &issue1.id).await?;
+    let fetched = mdstore::get(type_dir, &issue1.id).await?;
     println!(
         "\nFetched: {} (status: {}, priority: {})",
         fetched.title,
@@ -129,17 +130,16 @@ async fn demo_list_update_get(
 
 async fn demo_delete_restore(
     type_dir: &Path,
-    config: &TypeConfig,
     issue2: &Item,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Soft delete and restore
     mdstore::soft_delete(type_dir, &issue2.id).await?;
     println!("\nSoft-deleted '{}'", issue2.title);
 
-    let visible = mdstore::list(type_dir, config, Filters::default()).await?;
+    let visible = mdstore::list(type_dir, Filters::default()).await?;
     println!("Visible items: {}", visible.len());
 
-    let all = mdstore::list(type_dir, config, Filters::new().include_deleted()).await?;
+    let all = mdstore::list(type_dir, Filters::new().include_deleted()).await?;
     println!("All items (including deleted): {}", all.len());
 
     mdstore::restore(type_dir, &issue2.id).await?;
@@ -149,7 +149,7 @@ async fn demo_delete_restore(
     mdstore::delete(type_dir, &issue2.id, true).await?;
     println!("Hard-deleted '{}'", issue2.title);
 
-    let remaining = mdstore::list(type_dir, config, Filters::default()).await?;
+    let remaining = mdstore::list(type_dir, Filters::default()).await?;
     println!("\nRemaining items: {}", remaining.len());
 
     Ok(())
@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (issue1, issue2) = create_items(&type_dir, &config).await?;
     demo_list_update_get(&type_dir, &config, &issue1).await?;
-    demo_delete_restore(&type_dir, &config, &issue2).await?;
+    demo_delete_restore(&type_dir, &issue2).await?;
 
     Ok(())
 }

@@ -38,8 +38,6 @@ pub struct Frontmatter {
 pub struct Item {
     /// The item's identifier (UUID or slug)
     pub id: String,
-    /// The plural type name (e.g., "issues", "epics")
-    pub item_type: String,
     /// The item's title (from the H1 heading)
     pub title: String,
     /// The item's body content (markdown after the title)

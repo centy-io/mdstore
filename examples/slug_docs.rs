@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Minimal config -- no status, priority, or display numbers
     let config = TypeConfig {
         name: "Doc".to_string(),
-        plural: "docs".to_string(),
+
         identifier: IdStrategy::Slug,
         features: TypeFeatures::default(),
         statuses: Vec::new(),
@@ -79,14 +79,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Created: {} (id: {})", doc3.title, doc3.id);
 
     // List all docs
-    let all_docs = mdstore::list(&type_dir, &config, Filters::default()).await?;
+    let all_docs = mdstore::list(&type_dir, Filters::default()).await?;
     println!("\nAll documents:");
     for doc in &all_docs {
         println!("  /{} - {}", doc.id, doc.title);
     }
 
     // Fetch by slug
-    let fetched = mdstore::get(&type_dir, &config, "getting-started").await?;
+    let fetched = mdstore::get(&type_dir, "getting-started").await?;
     println!(
         "\nFetched doc:\n  Title: {}\n  Body: {}",
         fetched.title, fetched.body

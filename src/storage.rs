@@ -142,7 +142,7 @@ pub async fn create(
 
     Ok(Item {
         id,
-        item_type: config.plural.clone(),
+
         title: options.title,
         body: options.body,
         frontmatter,
@@ -150,7 +150,7 @@ pub async fn create(
 }
 
 /// Get a single item by ID.
-pub async fn get(type_dir: &Path, config: &TypeConfig, id: &str) -> Result<Item, StoreError> {
+pub async fn get(type_dir: &Path, id: &str) -> Result<Item, StoreError> {
     let file_path = type_dir.join(format!("{id}.md"));
 
     if !file_path.exists() {
@@ -163,7 +163,7 @@ pub async fn get(type_dir: &Path, config: &TypeConfig, id: &str) -> Result<Item,
 
     Ok(Item {
         id: id.to_string(),
-        item_type: config.plural.clone(),
+
         title,
         body,
         frontmatter,
@@ -173,7 +173,6 @@ pub async fn get(type_dir: &Path, config: &TypeConfig, id: &str) -> Result<Item,
 /// List items with optional filters.
 pub async fn list(
     type_dir: &Path,
-    config: &TypeConfig,
     filters: Filters,
 ) -> Result<Vec<Item>, StoreError> {
     if !type_dir.exists() {
@@ -210,7 +209,7 @@ pub async fn list(
 
         items.push(Item {
             id,
-            item_type: config.plural.clone(),
+    
             title,
             body,
             frontmatter,
@@ -322,7 +321,7 @@ pub async fn update(
 
     Ok(Item {
         id: id.to_string(),
-        item_type: config.plural.clone(),
+
         title,
         body,
         frontmatter,
@@ -420,7 +419,7 @@ pub async fn duplicate(
     options: DuplicateOptions,
 ) -> Result<DuplicateResult, StoreError> {
     // Read source item
-    let source_item = get(&options.source_dir, config, &options.item_id).await?;
+    let source_item = get(&options.source_dir, &options.item_id).await?;
 
     // Generate new ID
     let new_id = match options.new_id {
@@ -486,7 +485,7 @@ pub async fn duplicate(
     Ok(DuplicateResult {
         item: Item {
             id: new_id,
-            item_type: config.plural.clone(),
+    
             title: new_title,
             body: source_item.body,
             frontmatter,
@@ -512,7 +511,7 @@ pub async fn move_item(
     if !source_config.features.move_item {
         return Err(StoreError::FeatureNotEnabled(format!(
             "move is not enabled for {}",
-            source_config.plural
+            source_config.name
         )));
     }
 
@@ -597,7 +596,7 @@ pub async fn move_item(
     fs::remove_file(&source_file).await?;
 
     // 13. Read and return the moved item
-    let moved_item = get(target_dir, target_config, &target_id).await?;
+    let moved_item = get(target_dir, &target_id).await?;
 
     Ok(MoveResult {
         item: moved_item,
@@ -614,7 +613,7 @@ mod tests {
     fn issue_config() -> TypeConfig {
         TypeConfig {
             name: "Issue".to_string(),
-            plural: "issues".to_string(),
+
             identifier: IdStrategy::Uuid,
             features: TypeFeatures {
                 display_number: true,
@@ -640,7 +639,7 @@ mod tests {
     fn minimal_config() -> TypeConfig {
         TypeConfig {
             name: "Note".to_string(),
-            plural: "notes".to_string(),
+
             identifier: IdStrategy::Uuid,
             features: TypeFeatures::default(),
             statuses: Vec::new(),
@@ -673,7 +672,7 @@ mod tests {
         assert_eq!(created.frontmatter.priority, Some(2));
 
         // Get it back
-        let fetched = get(&type_dir, &config, &created.id).await.unwrap();
+        let fetched = get(&type_dir, &created.id).await.unwrap();
         assert_eq!(fetched.title, "Test Issue");
         assert_eq!(fetched.frontmatter.display_number, Some(1));
     }
@@ -706,7 +705,6 @@ mod tests {
 
         let mut config = minimal_config();
         config.identifier = IdStrategy::Slug;
-        config.plural = "docs".to_string();
 
         let options = CreateOptions {
             title: "Getting Started Guide".to_string(),
@@ -786,23 +784,23 @@ mod tests {
         }
 
         // List all
-        let all = list(&type_dir, &config, Filters::default()).await.unwrap();
+        let all = list(&type_dir, Filters::default()).await.unwrap();
         assert_eq!(all.len(), 3);
 
         // List open only
-        let open = list(&type_dir, &config, Filters::new().with_status("open"))
+        let open = list(&type_dir, Filters::new().with_status("open"))
             .await
             .unwrap();
         assert_eq!(open.len(), 2);
 
         // List with limit
-        let limited = list(&type_dir, &config, Filters::new().with_limit(1))
+        let limited = list(&type_dir, Filters::new().with_limit(1))
             .await
             .unwrap();
         assert_eq!(limited.len(), 1);
 
         // List with offset
-        let offset = list(&type_dir, &config, Filters::new().with_offset(2))
+        let offset = list(&type_dir, Filters::new().with_offset(2))
             .await
             .unwrap();
         assert_eq!(offset.len(), 1);
@@ -880,11 +878,11 @@ mod tests {
         soft_delete(&type_dir, &created.id).await.unwrap();
 
         // Should not appear in default list
-        let items = list(&type_dir, &config, Filters::default()).await.unwrap();
+        let items = list(&type_dir, Filters::default()).await.unwrap();
         assert!(items.is_empty());
 
         // Should appear with include_deleted
-        let items = list(&type_dir, &config, Filters::new().include_deleted())
+        let items = list(&type_dir, Filters::new().include_deleted())
             .await
             .unwrap();
         assert_eq!(items.len(), 1);
@@ -894,7 +892,7 @@ mod tests {
         restore(&type_dir, &created.id).await.unwrap();
 
         // Should appear again
-        let items = list(&type_dir, &config, Filters::default()).await.unwrap();
+        let items = list(&type_dir, Filters::default()).await.unwrap();
         assert_eq!(items.len(), 1);
         assert!(items.first().unwrap().frontmatter.deleted_at.is_none());
     }
@@ -920,7 +918,7 @@ mod tests {
         delete(&type_dir, &created.id, true).await.unwrap();
 
         // Should not exist at all
-        let result = get(&type_dir, &config, &created.id).await;
+        let result = get(&type_dir, &created.id).await;
         assert!(result.is_err());
     }
 
@@ -1048,8 +1046,7 @@ mod tests {
         let type_dir = temp.path().join("issues");
         fs::create_dir_all(&type_dir).await.unwrap();
 
-        let config = issue_config();
-        let result = get(&type_dir, &config, "nonexistent").await;
+        let result = get(&type_dir, "nonexistent").await;
         assert!(result.is_err());
         assert!(matches!(result, Err(StoreError::NotFound(_))));
     }
@@ -1059,8 +1056,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let type_dir = temp.path().join("issues");
 
-        let config = issue_config();
-        let items = list(&type_dir, &config, Filters::default()).await.unwrap();
+        let items = list(&type_dir, Filters::default()).await.unwrap();
         assert!(items.is_empty());
     }
 }
