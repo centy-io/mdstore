@@ -32,6 +32,7 @@ jobs:
         with:
           toolchain: "1.70"
       - uses: Swatinem/rust-cache@v2
+      - run: rm -f Cargo.lock
       - run: cargo build
       - run: cargo test
 

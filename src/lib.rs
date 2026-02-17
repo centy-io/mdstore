@@ -2,17 +2,18 @@
 //! files with YAML frontmatter.
 
 // Allow panics/unwraps in test code
-#[cfg(test)]
-#[allow(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    clippy::arithmetic_side_effects,
-    clippy::panic_in_result_fn,
-    clippy::unwrap_in_result
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::indexing_slicing,
+        clippy::arithmetic_side_effects,
+        clippy::panic_in_result_fn,
+        clippy::unwrap_in_result
+    )
 )]
-mod test_cfg {}
 
 pub mod config;
 pub mod error;
