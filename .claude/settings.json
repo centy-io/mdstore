@@ -43,7 +43,9 @@
       "Bash(grep:*)",
       "Bash(cargo doc:*)",
       "Bash(wc:*)",
-      "Bash(cargo metadata:*)"
+      "Bash(cargo metadata:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
