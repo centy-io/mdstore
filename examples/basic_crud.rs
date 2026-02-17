@@ -86,8 +86,7 @@ async fn demo_list_update_get(
     issue1: &Item,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // List all open issues
-    let open_issues =
-        mdstore::list(type_dir, config, Filters::new().with_status("open")).await?;
+    let open_issues = mdstore::list(type_dir, config, Filters::new().with_status("open")).await?;
     println!("\nOpen issues: {}", open_issues.len());
     for item in &open_issues {
         println!(

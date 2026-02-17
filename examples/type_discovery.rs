@@ -111,10 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "  [{}] {} ({})",
                 t.plural,
                 item.title,
-                item.frontmatter
-                    .status
-                    .as_deref()
-                    .unwrap_or("no status")
+                item.frontmatter.status.as_deref().unwrap_or("no status")
             );
         }
     }
@@ -133,7 +130,11 @@ async fn print_tree(dir: &Path, depth: usize) {
         while let Ok(Some(entry)) = entries.next_entry().await {
             names.push((
                 entry.file_name().to_string_lossy().to_string(),
-                entry.file_type().await.map(|ft| ft.is_dir()).unwrap_or(false),
+                entry
+                    .file_type()
+                    .await
+                    .map(|ft| ft.is_dir())
+                    .unwrap_or(false),
             ));
         }
         names.sort();

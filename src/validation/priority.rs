@@ -43,7 +43,7 @@ pub fn default_priority(priority_levels: u32) -> u32 {
     if priority_levels <= 1 {
         1
     } else {
-        priority_levels.div_ceil(2)
+        priority_levels.saturating_add(1) / 2
     }
 }
 
@@ -119,7 +119,7 @@ pub fn label_to_priority(label: &str, max_levels: u32) -> Option<u32> {
                 2 => Some(1), // No medium in 2-level system
                 3 => Some(2),
                 4 => Some(3),
-                _ => Some(max_levels.div_ceil(2)),
+                _ => Some(max_levels.saturating_add(1) / 2),
             }
         }
         "low" => Some(max_levels),

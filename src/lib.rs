@@ -24,8 +24,8 @@ pub mod reconcile;
 pub mod storage;
 pub mod traits;
 pub mod types;
-pub mod validation;
 mod util;
+pub mod validation;
 
 // Re-export primary types for convenience
 pub use config::{ConfigError, CustomFieldDef, TypeConfig, TypeFeatures};
