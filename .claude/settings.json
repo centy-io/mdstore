@@ -59,7 +59,10 @@
       "Bash(centy show:*)",
       "Bash(gh pr view:*)",
       "Bash(centy list:*)",
-      "Bash(gh run watch:*)"
+      "Bash(gh run watch:*)",
+      "Bash(git diff-tree:*)",
+      "Bash(done)",
+      "Bash(while read hash msg)"
     ],
     "deny": ["Bash(gh issue create:*)", "Bash(cargo publish:*)"]
   },
