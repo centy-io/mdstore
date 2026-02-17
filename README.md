@@ -80,4 +80,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, Git hooks, and com
 
 ## License
 
-PolyForm Noncommercial 1.0.0
+Licensed under the [PolyForm Noncommercial 1.0.0](LICENSE.md). This license permits use for any non-commercial purpose. Commercial use requires a separate license — reach out via the [repository](https://github.com/centy-io/mdstore) for details.
