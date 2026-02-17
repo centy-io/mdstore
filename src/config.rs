@@ -70,7 +70,6 @@ pub struct TypeFeatures {
 #[serde(rename_all = "camelCase")]
 pub struct TypeConfig {
     pub name: String,
-    pub plural: String,
     pub identifier: IdStrategy,
     pub features: TypeFeatures,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -162,7 +161,7 @@ mod tests {
     fn sample_config() -> TypeConfig {
         TypeConfig {
             name: "Issue".to_string(),
-            plural: "issues".to_string(),
+
             identifier: IdStrategy::Uuid,
             features: TypeFeatures {
                 display_number: true,
@@ -188,7 +187,7 @@ mod tests {
     fn minimal_config() -> TypeConfig {
         TypeConfig {
             name: "Doc".to_string(),
-            plural: "docs".to_string(),
+
             identifier: IdStrategy::Slug,
             features: TypeFeatures::default(),
             statuses: Vec::new(),
@@ -204,7 +203,7 @@ mod tests {
         let yaml = serde_yaml::to_string(&config).expect("Should serialize");
 
         assert!(yaml.contains("name: Issue"));
-        assert!(yaml.contains("plural: issues"));
+        assert!(!yaml.contains("plural"));
         assert!(yaml.contains("identifier: uuid"));
         assert!(yaml.contains("displayNumber: true"));
         assert!(yaml.contains("move: true"));
@@ -217,7 +216,7 @@ mod tests {
         let yaml = serde_yaml::to_string(&config).expect("Should serialize");
 
         assert!(yaml.contains("name: Doc"));
-        assert!(yaml.contains("plural: docs"));
+        assert!(!yaml.contains("plural"));
         assert!(yaml.contains("identifier: slug"));
         assert!(yaml.contains("displayNumber: false"));
         // Should NOT have optional fields
@@ -384,5 +383,12 @@ mod tests {
         assert!(json.contains("\"name\""));
         assert!(json.contains("\"required\""));
         assert!(!json.contains("field_type"));
+    }
+
+    #[test]
+    fn test_yaml_with_legacy_plural_field_deserializes() {
+        let yaml = "name: Task\nplural: tasks\nidentifier: uuid\nfeatures:\n  displayNumber: false\n  status: false\n  priority: false\n  assets: false\n  orgSync: false\n  move: false\n  duplicate: false\n";
+        let config: TypeConfig = serde_yaml::from_str(yaml).expect("Should deserialize");
+        assert_eq!(config.name, "Task");
     }
 }

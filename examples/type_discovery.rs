@@ -21,7 +21,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set up multiple item types
     let issue_config = TypeConfig {
         name: "Issue".to_string(),
-        plural: "issues".to_string(),
         identifier: IdStrategy::Uuid,
         features: TypeFeatures {
             display_number: true,
@@ -40,7 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let epic_config = TypeConfig {
         name: "Epic".to_string(),
-        plural: "epics".to_string(),
         identifier: IdStrategy::Slug,
         features: TypeFeatures {
             display_number: true,
@@ -60,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let doc_config = TypeConfig {
         name: "Doc".to_string(),
-        plural: "docs".to_string(),
         identifier: IdStrategy::Slug,
         features: TypeFeatures::default(),
         statuses: Vec::new(),
@@ -69,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         custom_fields: Vec::new(),
     };
 
-    // Write configs to disk
+    // Write configs to disk -- directory names are chosen by the caller
     write_type_config(&base_dir.join("issues"), &issue_config).await?;
     write_type_config(&base_dir.join("epics"), &epic_config).await?;
     write_type_config(&base_dir.join("docs"), &doc_config).await?;
@@ -80,14 +77,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nDiscovered {} item types:", types.len());
     for t in &types {
         println!(
-            "  {} ({}) -- identifier: {}, statuses: {:?}",
-            t.name, t.plural, t.identifier, t.statuses
+            "  {} -- identifier: {}, statuses: {:?}",
+            t.name, t.identifier, t.statuses
         );
     }
 
     // Create items in each discovered type
-    for t in &types {
-        let type_dir = base_dir.join(&t.plural);
+    // The directory name matches the folder that was scanned by discover_types
+    let type_dirs = ["issues", "epics", "docs"];
+    for (t, dir_name) in types.iter().zip(type_dirs.iter()) {
+        let type_dir = base_dir.join(dir_name);
         let item = mdstore::create(
             &type_dir,
             t,
@@ -106,13 +105,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // List items across all types
     println!("\n--- All items ---");
-    for t in &types {
-        let type_dir = base_dir.join(&t.plural);
-        let items = mdstore::list(&type_dir, t, Filters::default()).await?;
+    for (t, dir_name) in types.iter().zip(type_dirs.iter()) {
+        let type_dir = base_dir.join(dir_name);
+        let items = mdstore::list(&type_dir, Filters::default()).await?;
         for item in items {
             println!(
                 "  [{}] {} ({})",
-                t.plural,
+                t.name,
                 item.title,
                 item.frontmatter.status.as_deref().unwrap_or("no status")
             );
