@@ -5,7 +5,13 @@
       "Bash(cargo publish:*)",
       "WebFetch(domain:polyformproject.org)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh repo view:*)",
+      "Bash(centy --help:*)",
+      "Bash(centy create --help:*)",
+      "Bash(centy create issue --help:*)",
+      "Bash(centy create issue:*)",
+      "Bash(centy issue:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
