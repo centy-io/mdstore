@@ -6,7 +6,8 @@
       "WebFetch(domain:polyformproject.org)",
       "Bash(git add:*)",
       "Bash(git commit:*)"
-    ]
+    ],
+    "deny": ["Bash(gh issue create:*)"]
   },
   "hooks": {
     "PreToolUse": [
