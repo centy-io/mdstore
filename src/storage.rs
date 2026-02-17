@@ -372,8 +372,9 @@ pub async fn soft_delete(type_dir: &Path, id: &str) -> Result<(), StoreError> {
         return Err(StoreError::IsDeleted(id.to_string()));
     }
 
-    frontmatter.deleted_at = Some(now_iso());
-    frontmatter.updated_at = now_iso();
+    let now = now_iso();
+    frontmatter.deleted_at = Some(now.clone());
+    frontmatter.updated_at = now;
 
     let new_content = generate_frontmatter(&frontmatter, &title, &body);
     fs::write(&file_path, &new_content).await?;
