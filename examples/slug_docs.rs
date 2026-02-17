@@ -36,7 +36,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config,
         CreateOptions {
             title: "Getting Started".to_string(),
-            body: "Welcome to the project!\n\n## Installation\n\nRun `cargo add mdstore`.".to_string(),
+            body: "Welcome to the project!\n\n## Installation\n\nRun `cargo add mdstore`."
+                .to_string(),
             id: None,
             status: None,
             priority: None,
@@ -86,7 +87,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Fetch by slug
     let fetched = mdstore::get(&type_dir, &config, "getting-started").await?;
-    println!("\nFetched doc:\n  Title: {}\n  Body: {}", fetched.title, fetched.body);
+    println!(
+        "\nFetched doc:\n  Title: {}\n  Body: {}",
+        fetched.title, fetched.body
+    );
 
     // On-disk, the file is simply: docs/getting-started.md
     let file_path = type_dir.join("getting-started.md");

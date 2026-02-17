@@ -5,8 +5,8 @@
 //! 1. Keeping the oldest item's display number (by `created_at`)
 //! 2. Reassigning newer items to the next available number
 
-use crate::frontmatter::{generate_frontmatter, parse_frontmatter};
 use crate::error::StoreError;
+use crate::frontmatter::{generate_frontmatter, parse_frontmatter};
 use crate::types::Frontmatter;
 use crate::util::now_iso;
 use std::collections::HashMap;
@@ -206,9 +206,7 @@ mod tests {
     async fn test_get_next_display_number_empty() {
         let temp = TempDir::new().unwrap();
         let storage_path = temp.path().join("items");
-        let next = get_next_display_number(&storage_path)
-            .await
-            .unwrap();
+        let next = get_next_display_number(&storage_path).await.unwrap();
         assert_eq!(next, 1);
     }
 
@@ -220,9 +218,7 @@ mod tests {
 
         create_test_item(&storage_path, "item-1", 5, "2024-01-01T10:00:00Z").await;
 
-        let next = get_next_display_number(&storage_path)
-            .await
-            .unwrap();
+        let next = get_next_display_number(&storage_path).await.unwrap();
         assert_eq!(next, 6);
     }
 
@@ -235,9 +231,7 @@ mod tests {
         create_test_item(&storage_path, "item-1", 1, "2024-01-01T10:00:00Z").await;
         create_test_item(&storage_path, "item-2", 2, "2024-01-01T11:00:00Z").await;
 
-        let reassigned = reconcile_display_numbers(&storage_path)
-            .await
-            .unwrap();
+        let reassigned = reconcile_display_numbers(&storage_path).await.unwrap();
         assert_eq!(reassigned, 0);
     }
 
@@ -252,9 +246,7 @@ mod tests {
         create_test_item(&storage_path, "item-2", 4, "2024-01-01T10:05:00Z").await;
         create_test_item(&storage_path, "item-3", 5, "2024-01-01T10:10:00Z").await;
 
-        let reassigned = reconcile_display_numbers(&storage_path)
-            .await
-            .unwrap();
+        let reassigned = reconcile_display_numbers(&storage_path).await.unwrap();
         assert_eq!(reassigned, 1);
 
         // Verify the older one kept display_number 4
@@ -277,9 +269,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let storage_path = temp.path().join("items");
 
-        let reassigned = reconcile_display_numbers(&storage_path)
-            .await
-            .unwrap();
+        let reassigned = reconcile_display_numbers(&storage_path).await.unwrap();
         assert_eq!(reassigned, 0);
     }
 }

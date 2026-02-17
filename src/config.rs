@@ -242,9 +242,7 @@ mod tests {
     async fn test_read_type_config_nonexistent() {
         let temp = tempdir().expect("Should create temp dir");
         let type_dir = temp.path().join("issues");
-        let result = read_type_config(&type_dir)
-            .await
-            .expect("Should not error");
+        let result = read_type_config(&type_dir).await.expect("Should not error");
         assert!(result.is_none());
     }
 
@@ -313,8 +311,12 @@ mod tests {
             .expect("Should write");
 
         // Create directories without config.yaml
-        fs::create_dir_all(temp.path().join("assets")).await.unwrap();
-        fs::create_dir_all(temp.path().join("templates")).await.unwrap();
+        fs::create_dir_all(temp.path().join("assets"))
+            .await
+            .unwrap();
+        fs::create_dir_all(temp.path().join("templates"))
+            .await
+            .unwrap();
 
         let configs = discover_types(temp.path()).await.expect("Should discover");
         assert_eq!(configs.len(), 1);
@@ -357,8 +359,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&field).expect("Should serialize");
-        let deserialized: CustomFieldDef =
-            serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: CustomFieldDef = serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(deserialized.name, "environment");
         assert_eq!(deserialized.field_type, "enum");

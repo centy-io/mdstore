@@ -286,9 +286,8 @@ pub async fn update(
     }
 
     let content = fs::read_to_string(&file_path).await?;
-    let (mut frontmatter, current_title, current_body) =
-        parse_frontmatter::<Frontmatter>(&content)
-            .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
+    let (mut frontmatter, current_title, current_body) = parse_frontmatter::<Frontmatter>(&content)
+        .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
 
     // Check if item is soft-deleted
     if frontmatter.deleted_at.is_some() {
@@ -855,13 +854,7 @@ mod tests {
         fs::create_dir_all(&type_dir).await.unwrap();
 
         let config = issue_config();
-        let result = update(
-            &type_dir,
-            &config,
-            "nonexistent",
-            UpdateOptions::default(),
-        )
-        .await;
+        let result = update(&type_dir, &config, "nonexistent", UpdateOptions::default()).await;
         assert!(result.is_err());
         assert!(matches!(result, Err(StoreError::NotFound(_))));
     }

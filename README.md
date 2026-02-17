@@ -74,6 +74,10 @@ cargo run --example basic_crud
 | `reconcile` | Display number conflict detection and resolution |
 | `traits` | `Item`, `ItemCrud`, `ItemMetadata`, `SoftDeletable`, `Restorable`, `Movable`, `Duplicable` |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, Git hooks, and commit conventions.
+
 ## License
 
 PolyForm Noncommercial 1.0.0
