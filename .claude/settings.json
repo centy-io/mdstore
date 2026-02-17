@@ -46,7 +46,8 @@
       "Bash(cargo metadata:*)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(cargo tree:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
