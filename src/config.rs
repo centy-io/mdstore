@@ -1,6 +1,7 @@
 //! Type configuration for item types.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use thiserror::Error;
@@ -105,16 +106,18 @@ pub async fn write_type_config(type_dir: &Path, config: &TypeConfig) -> Result<(
     Ok(())
 }
 
-/// Discover all item types by scanning `{base_dir}/*/config.yaml`.
+/// Discover all item types, returning a map of folder name to config.
 ///
-/// Returns a list of `TypeConfig` for each subdirectory that contains
-/// a valid `config.yaml`. Malformed configs are logged and skipped.
-pub async fn discover_types(base_dir: &Path) -> Result<Vec<TypeConfig>, ConfigError> {
+/// Scans `{base_dir}/*/config.yaml` and returns a `HashMap` keyed by
+/// the subdirectory name. Malformed configs are logged and skipped.
+pub async fn discover_types_map(
+    base_dir: &Path,
+) -> Result<HashMap<String, TypeConfig>, ConfigError> {
     if !base_dir.exists() {
-        return Ok(Vec::new());
+        return Ok(HashMap::new());
     }
 
-    let mut configs = Vec::new();
+    let mut configs = HashMap::new();
     let mut entries = fs::read_dir(base_dir).await?;
 
     while let Some(entry) = entries.next_entry().await? {
@@ -138,7 +141,9 @@ pub async fn discover_types(base_dir: &Path) -> Result<Vec<TypeConfig>, ConfigEr
         };
 
         match serde_yaml::from_str::<TypeConfig>(&content) {
-            Ok(config) => configs.push(config),
+            Ok(config) => {
+                configs.insert(folder_name, config);
+            }
             Err(e) => {
                 error!(folder = %folder_name, error = %e, "Malformed config.yaml, skipping type");
             }
@@ -146,6 +151,17 @@ pub async fn discover_types(base_dir: &Path) -> Result<Vec<TypeConfig>, ConfigEr
     }
 
     Ok(configs)
+}
+
+/// Discover all item types by scanning `{base_dir}/*/config.yaml`.
+///
+/// Returns a list of `TypeConfig` for each subdirectory that contains
+/// a valid `config.yaml`. Malformed configs are logged and skipped.
+pub async fn discover_types(base_dir: &Path) -> Result<Vec<TypeConfig>, ConfigError> {
+    Ok(discover_types_map(base_dir)
+        .await?
+        .into_values()
+        .collect())
 }
 
 #[cfg(test)]
@@ -390,5 +406,73 @@ mod tests {
         let yaml = "name: Task\nplural: tasks\nidentifier: uuid\nfeatures:\n  displayNumber: false\n  status: false\n  priority: false\n  assets: false\n  orgSync: false\n  move: false\n  duplicate: false\n";
         let config: TypeConfig = serde_yaml::from_str(yaml).expect("Should deserialize");
         assert_eq!(config.name, "Task");
+    }
+
+    // ─── discover_types_map tests ────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_discover_types_map_with_configs() {
+        let temp = tempdir().expect("Should create temp dir");
+
+        // Create issues config
+        let issues_dir = temp.path().join("issues");
+        write_type_config(&issues_dir, &sample_config())
+            .await
+            .expect("Should write");
+
+        // Create docs config
+        let docs_dir = temp.path().join("docs");
+        write_type_config(&docs_dir, &minimal_config())
+            .await
+            .expect("Should write");
+
+        let map = discover_types_map(temp.path())
+            .await
+            .expect("Should discover");
+        assert_eq!(map.len(), 2);
+
+        let issues = map.get("issues").expect("Should have issues key");
+        assert_eq!(issues.name, "Issue");
+
+        let docs = map.get("docs").expect("Should have docs key");
+        assert_eq!(docs.name, "Doc");
+    }
+
+    #[tokio::test]
+    async fn test_discover_types_map_empty() {
+        let temp = tempdir().expect("Should create temp dir");
+        let map = discover_types_map(temp.path())
+            .await
+            .expect("Should discover");
+        assert!(map.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_discover_types_map_skips_malformed() {
+        let temp = tempdir().expect("Should create temp dir");
+
+        // Create a valid config
+        let issues_dir = temp.path().join("issues");
+        write_type_config(&issues_dir, &sample_config())
+            .await
+            .expect("Should write");
+
+        // Create a malformed config.yaml
+        let bad_dir = temp.path().join("broken");
+        fs::create_dir_all(&bad_dir).await.unwrap();
+        fs::write(
+            bad_dir.join("config.yaml"),
+            "this is: [not: valid: yaml: {{",
+        )
+        .await
+        .unwrap();
+
+        let map = discover_types_map(temp.path())
+            .await
+            .expect("Should discover");
+
+        assert_eq!(map.len(), 1);
+        assert!(map.contains_key("issues"));
+        assert!(!map.contains_key("broken"));
     }
 }

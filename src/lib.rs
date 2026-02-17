@@ -30,7 +30,8 @@ pub mod validation;
 
 // Re-export primary types for convenience
 pub use config::{
-    discover_types, ConfigError, CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures,
+    discover_types, discover_types_map, ConfigError, CustomFieldDef, IdStrategy, TypeConfig,
+    TypeFeatures,
 };
 pub use error::StoreError;
 pub use filters::Filters;
