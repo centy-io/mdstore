@@ -2,15 +2,16 @@
 //!
 //! Run with: cargo run --example basic_crud
 
+use mdstore::config::IdStrategy;
 use mdstore::{CreateOptions, Filters, Item, TypeConfig, TypeFeatures, UpdateOptions};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn issue_config() -> TypeConfig {
     TypeConfig {
         name: "Issue".to_string(),
         plural: "issues".to_string(),
-        identifier: "uuid".to_string(),
+        identifier: IdStrategy::Uuid,
         features: TypeFeatures {
             display_number: true,
             status: true,
@@ -154,10 +155,17 @@ async fn demo_delete_restore(
     Ok(())
 }
 
+fn output_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/output/basic_crud")
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let temp = tempfile::tempdir()?;
-    let type_dir = temp.path().join("issues");
+    let base = output_dir();
+    if base.exists() {
+        tokio::fs::remove_dir_all(&base).await?;
+    }
+    let type_dir = base.join("issues");
     let config = issue_config();
 
     let (issue1, issue2) = create_items(&type_dir, &config).await?;

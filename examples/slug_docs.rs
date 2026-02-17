@@ -5,19 +5,24 @@
 //!
 //! Run with: cargo run --example slug_docs
 
+use mdstore::config::IdStrategy;
 use mdstore::{CreateOptions, Filters, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
+use std::path::Path;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let temp = tempfile::tempdir()?;
-    let type_dir = temp.path().join("docs");
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/output/slug_docs");
+    if base.exists() {
+        tokio::fs::remove_dir_all(&base).await?;
+    }
+    let type_dir = base.join("docs");
 
     // Minimal config -- no status, priority, or display numbers
     let config = TypeConfig {
         name: "Doc".to_string(),
         plural: "docs".to_string(),
-        identifier: "slug".to_string(),
+        identifier: IdStrategy::Slug,
         features: TypeFeatures::default(),
         statuses: Vec::new(),
         default_status: None,

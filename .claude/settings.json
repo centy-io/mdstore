@@ -12,7 +12,10 @@
       "Bash(centy create issue --help:*)",
       "Bash(centy create issue:*)",
       "Bash(centy issue:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo run:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
