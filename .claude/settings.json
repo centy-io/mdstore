@@ -57,7 +57,9 @@
       "Bash(centy show issue:*)",
       "Bash(centy llm:*)",
       "Bash(centy show:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(centy list:*)",
+      "Bash(gh run watch:*)"
     ],
     "deny": ["Bash(gh issue create:*)", "Bash(cargo publish:*)"]
   },
