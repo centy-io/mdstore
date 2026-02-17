@@ -196,12 +196,18 @@ pub async fn list(type_dir: &Path, filters: Filters) -> Result<Vec<Item>, StoreE
         let id = name.trim_end_matches(".md").to_string();
         let content = match fs::read_to_string(entry.path()).await {
             Ok(c) => c,
-            Err(_) => continue,
+            Err(e) => {
+                tracing::warn!(path = %entry.path().display(), error = %e, "skipping file: read error");
+                continue;
+            }
         };
 
         let (frontmatter, title, body) = match parse_frontmatter::<Frontmatter>(&content) {
             Ok(result) => result,
-            Err(_) => continue, // Skip malformed files
+            Err(e) => {
+                tracing::warn!(path = %entry.path().display(), error = %e, "skipping file: malformed frontmatter");
+                continue;
+            }
         };
 
         items.push(Item {
