@@ -158,10 +158,7 @@ pub async fn discover_types_map(
 /// Returns a list of `TypeConfig` for each subdirectory that contains
 /// a valid `config.yaml`. Malformed configs are logged and skipped.
 pub async fn discover_types(base_dir: &Path) -> Result<Vec<TypeConfig>, ConfigError> {
-    Ok(discover_types_map(base_dir)
-        .await?
-        .into_values()
-        .collect())
+    Ok(discover_types_map(base_dir).await?.into_values().collect())
 }
 
 #[cfg(test)]

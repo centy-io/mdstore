@@ -64,8 +64,7 @@ fn epic_config() -> TypeConfig {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let base_dir =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/output/discover_types_map");
+    let base_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/output/discover_types_map");
     if base_dir.exists() {
         tokio::fs::remove_dir_all(&base_dir).await?;
     }
