@@ -1,10 +1,30 @@
 //! Type configuration for item types.
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::path::Path;
 use thiserror::Error;
 use tokio::fs;
 use tracing::error;
+
+/// Strategy for generating item identifiers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum IdStrategy {
+    /// UUID-based identifiers for conflict-free distributed creation.
+    Uuid,
+    /// Slug-based identifiers derived from the item title.
+    Slug,
+}
+
+impl fmt::Display for IdStrategy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            IdStrategy::Uuid => write!(f, "uuid"),
+            IdStrategy::Slug => write!(f, "slug"),
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
@@ -51,7 +71,7 @@ pub struct TypeFeatures {
 pub struct TypeConfig {
     pub name: String,
     pub plural: String,
-    pub identifier: String,
+    pub identifier: IdStrategy,
     pub features: TypeFeatures,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub statuses: Vec<String>,
@@ -143,7 +163,7 @@ mod tests {
         TypeConfig {
             name: "Issue".to_string(),
             plural: "issues".to_string(),
-            identifier: "uuid".to_string(),
+            identifier: IdStrategy::Uuid,
             features: TypeFeatures {
                 display_number: true,
                 status: true,
@@ -169,7 +189,7 @@ mod tests {
         TypeConfig {
             name: "Doc".to_string(),
             plural: "docs".to_string(),
-            identifier: "slug".to_string(),
+            identifier: IdStrategy::Slug,
             features: TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,

@@ -3,7 +3,7 @@
 //! All functions take a `type_dir: &Path` pointing to the directory where
 //! items of a given type are stored, working generically across any item type.
 
-use crate::config::TypeConfig;
+use crate::config::{IdStrategy, TypeConfig};
 use crate::error::StoreError;
 use crate::filters::Filters;
 use crate::frontmatter::{
@@ -73,7 +73,7 @@ pub async fn create(
     let id = match &options.id {
         Some(explicit_id) => explicit_id.clone(),
         None => {
-            if config.identifier == "slug" {
+            if config.identifier == IdStrategy::Slug {
                 let slug = slug::slugify(&options.title);
                 if slug.is_empty() {
                     return Err(StoreError::ValidationError(
@@ -426,14 +426,14 @@ pub async fn duplicate(
     // Generate new ID
     let new_id = match options.new_id {
         Some(ref id) if !id.is_empty() => {
-            if config.identifier == "slug" {
+            if config.identifier == IdStrategy::Slug {
                 slug::slugify(id)
             } else {
                 id.clone()
             }
         }
         _ => {
-            if config.identifier == "slug" {
+            if config.identifier == IdStrategy::Slug {
                 format!("{}-copy", options.item_id)
             } else {
                 uuid::Uuid::new_v4().to_string()
@@ -552,7 +552,7 @@ pub async fn move_item(
     }
 
     // 6. Determine target ID
-    let target_id = if source_config.identifier == "slug" {
+    let target_id = if source_config.identifier == IdStrategy::Slug {
         new_id.unwrap_or(item_id).to_string()
     } else {
         // UUID-based: keep the same ID
@@ -616,7 +616,7 @@ mod tests {
         TypeConfig {
             name: "Issue".to_string(),
             plural: "issues".to_string(),
-            identifier: "uuid".to_string(),
+            identifier: IdStrategy::Uuid,
             features: TypeFeatures {
                 display_number: true,
                 status: true,
@@ -642,7 +642,7 @@ mod tests {
         TypeConfig {
             name: "Note".to_string(),
             plural: "notes".to_string(),
-            identifier: "uuid".to_string(),
+            identifier: IdStrategy::Uuid,
             features: TypeFeatures::default(),
             statuses: Vec::new(),
             default_status: None,
@@ -706,7 +706,7 @@ mod tests {
         let type_dir = temp.path().join("docs");
 
         let mut config = minimal_config();
-        config.identifier = "slug".to_string();
+        config.identifier = IdStrategy::Slug;
         config.plural = "docs".to_string();
 
         let options = CreateOptions {
@@ -1031,7 +1031,7 @@ mod tests {
         let type_dir = temp.path().join("notes");
 
         let mut config = minimal_config();
-        config.identifier = "slug".to_string();
+        config.identifier = IdStrategy::Slug;
 
         let options = CreateOptions {
             title: "Same Title".to_string(),

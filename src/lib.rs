@@ -28,7 +28,7 @@ pub mod validation;
 mod util;
 
 // Re-export primary types for convenience
-pub use config::{ConfigError, CustomFieldDef, TypeConfig, TypeFeatures};
+pub use config::{ConfigError, CustomFieldDef, IdStrategy, TypeConfig, TypeFeatures};
 pub use error::StoreError;
 pub use filters::Filters;
 pub use frontmatter::{

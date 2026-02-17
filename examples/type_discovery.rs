@@ -5,21 +5,24 @@
 //!
 //! Run with: cargo run --example type_discovery
 
-use mdstore::config::{discover_types, write_type_config};
+use mdstore::config::{discover_types, write_type_config, IdStrategy};
 use mdstore::{CreateOptions, Filters, TypeConfig, TypeFeatures};
 use std::collections::HashMap;
 use std::path::Path;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let temp = tempfile::tempdir()?;
-    let base_dir = temp.path();
+    let base_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/output/type_discovery");
+    if base_dir.exists() {
+        tokio::fs::remove_dir_all(&base_dir).await?;
+    }
+    tokio::fs::create_dir_all(&base_dir).await?;
 
     // Set up multiple item types
     let issue_config = TypeConfig {
         name: "Issue".to_string(),
         plural: "issues".to_string(),
-        identifier: "uuid".to_string(),
+        identifier: IdStrategy::Uuid,
         features: TypeFeatures {
             display_number: true,
             status: true,
@@ -38,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let epic_config = TypeConfig {
         name: "Epic".to_string(),
         plural: "epics".to_string(),
-        identifier: "slug".to_string(),
+        identifier: IdStrategy::Slug,
         features: TypeFeatures {
             display_number: true,
             status: true,
@@ -58,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let doc_config = TypeConfig {
         name: "Doc".to_string(),
         plural: "docs".to_string(),
-        identifier: "slug".to_string(),
+        identifier: IdStrategy::Slug,
         features: TypeFeatures::default(),
         statuses: Vec::new(),
         default_status: None,
@@ -73,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Wrote 3 type configs to {}", base_dir.display());
 
     // Discover all types
-    let types = discover_types(base_dir).await?;
+    let types = discover_types(&base_dir).await?;
     println!("\nDiscovered {} item types:", types.len());
     for t in &types {
         println!(
@@ -121,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Show the on-disk layout
     println!("\nOn-disk layout:");
-    print_tree(base_dir, 0).await;
+    print_tree(&base_dir, 0).await;
 
     Ok(())
 }
