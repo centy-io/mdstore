@@ -51,7 +51,13 @@
       "Bash(gh run rerun:*)",
       "Bash(git status:*)",
       "Bash(gh issue list:*)",
-      "Bash(gh repo list:*)"
+      "Bash(gh repo list:*)",
+      "Bash(centy list issues:*)",
+      "Bash(centy sync:*)",
+      "Bash(centy show issue:*)",
+      "Bash(centy llm:*)",
+      "Bash(centy show:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": ["Bash(gh issue create:*)"]
   },
