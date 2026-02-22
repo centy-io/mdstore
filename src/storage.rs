@@ -232,19 +232,27 @@ fn apply_filters(mut items: Vec<Item>, filters: &Filters) -> Vec<Item> {
         items.retain(|item| item.frontmatter.deleted_at.is_none());
     }
 
-    // Filter by status
-    if let Some(ref status_filter) = filters.status {
+    // Filter by statuses (any match)
+    if let Some(ref status_filters) = filters.statuses {
         items.retain(|item| {
             item.frontmatter
                 .status
                 .as_ref()
-                .is_some_and(|s| s.eq_ignore_ascii_case(status_filter))
+                .is_some_and(|s| status_filters.iter().any(|f| f.eq_ignore_ascii_case(s)))
         });
     }
 
-    // Filter by priority
+    // Filter by exact priority
     if let Some(priority_filter) = filters.priority {
         items.retain(|item| item.frontmatter.priority == Some(priority_filter));
+    }
+
+    // Filter by priority range
+    if let Some(lte) = filters.priority_lte {
+        items.retain(|item| item.frontmatter.priority.is_some_and(|p| p <= lte));
+    }
+    if let Some(gte) = filters.priority_gte {
+        items.retain(|item| item.frontmatter.priority.is_some_and(|p| p >= gte));
     }
 
     // Sort by display_number (if present), then by created_at

@@ -3,10 +3,14 @@
 /// Common filter options for listing items
 #[derive(Debug, Clone, Default)]
 pub struct Filters {
-    /// Filter by status
-    pub status: Option<String>,
-    /// Filter by priority
+    /// Filter by statuses (any match); None = no filter
+    pub statuses: Option<Vec<String>>,
+    /// Filter by exact priority; None = no filter
     pub priority: Option<u32>,
+    /// Filter by priority less than or equal to this value; None = no filter
+    pub priority_lte: Option<u32>,
+    /// Filter by priority greater than or equal to this value; None = no filter
+    pub priority_gte: Option<u32>,
     /// Include soft-deleted items
     pub include_deleted: bool,
     /// Limit number of results
@@ -22,17 +26,37 @@ impl Filters {
         Self::default()
     }
 
-    /// Filter by status
+    /// Filter by a single status (convenience wrapper for `with_statuses`)
     #[must_use]
-    pub fn with_status(mut self, status: impl Into<String>) -> Self {
-        self.status = Some(status.into());
+    pub fn with_status(self, status: impl Into<String>) -> Self {
+        self.with_statuses(vec![status.into()])
+    }
+
+    /// Filter by a set of statuses (any match)
+    #[must_use]
+    pub fn with_statuses(mut self, statuses: Vec<String>) -> Self {
+        self.statuses = Some(statuses);
         self
     }
 
-    /// Filter by priority
+    /// Filter by exact priority
     #[must_use]
     pub fn with_priority(mut self, priority: u32) -> Self {
         self.priority = Some(priority);
+        self
+    }
+
+    /// Filter by priority less than or equal to this value
+    #[must_use]
+    pub fn with_priority_lte(mut self, priority: u32) -> Self {
+        self.priority_lte = Some(priority);
+        self
+    }
+
+    /// Filter by priority greater than or equal to this value
+    #[must_use]
+    pub fn with_priority_gte(mut self, priority: u32) -> Self {
+        self.priority_gte = Some(priority);
         self
     }
 
@@ -65,8 +89,10 @@ mod tests {
     #[test]
     fn test_filters_default() {
         let filters = Filters::default();
-        assert!(filters.status.is_none());
+        assert!(filters.statuses.is_none());
         assert!(filters.priority.is_none());
+        assert!(filters.priority_lte.is_none());
+        assert!(filters.priority_gte.is_none());
         assert!(!filters.include_deleted);
         assert!(filters.limit.is_none());
         assert!(filters.offset.is_none());
@@ -75,7 +101,7 @@ mod tests {
     #[test]
     fn test_filters_new() {
         let filters = Filters::new();
-        assert!(filters.status.is_none());
+        assert!(filters.statuses.is_none());
         assert!(filters.priority.is_none());
         assert!(!filters.include_deleted);
         assert!(filters.limit.is_none());
@@ -85,19 +111,41 @@ mod tests {
     #[test]
     fn test_filters_with_status() {
         let filters = Filters::new().with_status("open");
-        assert_eq!(filters.status, Some("open".to_string()));
+        assert_eq!(filters.statuses, Some(vec!["open".to_string()]));
     }
 
     #[test]
     fn test_filters_with_status_string() {
         let filters = Filters::new().with_status("in-progress".to_string());
-        assert_eq!(filters.status, Some("in-progress".to_string()));
+        assert_eq!(filters.statuses, Some(vec!["in-progress".to_string()]));
+    }
+
+    #[test]
+    fn test_filters_with_statuses() {
+        let filters =
+            Filters::new().with_statuses(vec!["open".to_string(), "in-progress".to_string()]);
+        assert_eq!(
+            filters.statuses,
+            Some(vec!["open".to_string(), "in-progress".to_string()])
+        );
     }
 
     #[test]
     fn test_filters_with_priority() {
         let filters = Filters::new().with_priority(1);
         assert_eq!(filters.priority, Some(1));
+    }
+
+    #[test]
+    fn test_filters_with_priority_lte() {
+        let filters = Filters::new().with_priority_lte(2);
+        assert_eq!(filters.priority_lte, Some(2));
+    }
+
+    #[test]
+    fn test_filters_with_priority_gte() {
+        let filters = Filters::new().with_priority_gte(1);
+        assert_eq!(filters.priority_gte, Some(1));
     }
 
     #[test]
@@ -127,7 +175,7 @@ mod tests {
             .with_limit(20)
             .with_offset(10);
 
-        assert_eq!(filters.status, Some("open".to_string()));
+        assert_eq!(filters.statuses, Some(vec!["open".to_string()]));
         assert_eq!(filters.priority, Some(2));
         assert!(filters.include_deleted);
         assert_eq!(filters.limit, Some(20));
@@ -138,7 +186,7 @@ mod tests {
     fn test_filters_clone() {
         let filters = Filters::new().with_status("open").with_priority(1);
         let cloned = filters.clone();
-        assert_eq!(cloned.status, Some("open".to_string()));
+        assert_eq!(cloned.statuses, Some(vec!["open".to_string()]));
         assert_eq!(cloned.priority, Some(1));
     }
 
