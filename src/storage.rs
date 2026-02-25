@@ -908,6 +908,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_soft_delete_timestamps_are_identical() {
+        let temp = tempfile::tempdir().unwrap();
+        let type_dir = temp.path().join("issues");
+
+        let config = issue_config();
+        let options = CreateOptions {
+            title: "Timestamp Test".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(2),
+            custom_fields: HashMap::new(),
+        };
+
+        let created = create(&type_dir, &config, options).await.unwrap();
+        soft_delete(&type_dir, &created.id).await.unwrap();
+
+        let items = list(&type_dir, Filters::new().include_deleted())
+            .await
+            .unwrap();
+        let item = items.first().unwrap();
+        assert_eq!(
+            item.frontmatter.deleted_at,
+            Some(item.frontmatter.updated_at.clone()),
+            "deleted_at and updated_at must be identical after soft_delete"
+        );
+    }
+
+    #[tokio::test]
     async fn test_hard_delete() {
         let temp = tempfile::tempdir().unwrap();
         let type_dir = temp.path().join("issues");
