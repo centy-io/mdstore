@@ -433,6 +433,14 @@ pub async fn duplicate(
     config: &TypeConfig,
     options: DuplicateOptions,
 ) -> Result<DuplicateResult, StoreError> {
+    // Check duplicate feature is enabled
+    if !config.features.duplicate {
+        return Err(StoreError::FeatureNotEnabled(format!(
+            "duplicate is not enabled for {}",
+            config.name
+        )));
+    }
+
     // Read source item
     let source_item = get(&options.source_dir, &options.item_id).await?;
 
@@ -1182,6 +1190,36 @@ mod tests {
         )
         .await;
 
+        assert!(matches!(result, Err(StoreError::FeatureNotEnabled(_))));
+    }
+
+    #[tokio::test]
+    async fn test_duplicate_feature_disabled_returns_error() {
+        let temp = tempfile::tempdir().unwrap();
+        let type_dir = temp.path().join("issues");
+
+        let mut config = issue_config();
+        config.features.duplicate = false;
+
+        let options = CreateOptions {
+            title: "Original".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(2),
+            custom_fields: HashMap::new(),
+        };
+        let created = create(&type_dir, &config, options).await.unwrap();
+
+        let dup_options = DuplicateOptions {
+            source_dir: type_dir.clone(),
+            target_dir: type_dir.clone(),
+            item_id: created.id,
+            new_id: None,
+            new_title: None,
+        };
+        let result = duplicate(&config, dup_options).await;
+        assert!(result.is_err());
         assert!(matches!(result, Err(StoreError::FeatureNotEnabled(_))));
     }
 }
