@@ -519,11 +519,17 @@ pub async fn move_item(
     item_id: &str,
     new_id: Option<&str>,
 ) -> Result<MoveResult, StoreError> {
-    // 1. Check move feature is enabled
+    // 1. Check move feature is enabled on both source and target
     if !source_config.features.move_item {
         return Err(StoreError::FeatureNotEnabled(format!(
             "move is not enabled for {}",
             source_config.name
+        )));
+    }
+    if !target_config.features.move_item {
+        return Err(StoreError::FeatureNotEnabled(format!(
+            "move is not enabled for {}",
+            target_config.name
         )));
     }
 
@@ -1097,5 +1103,38 @@ mod tests {
 
         let items = list(&type_dir, Filters::default()).await.unwrap();
         assert!(items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_move_item_target_move_disabled_is_rejected() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_dir = temp.path().join("issues");
+        let target_dir = temp.path().join("notes");
+
+        let source_config = issue_config(); // move_item: true
+        let mut target_config = issue_config();
+        target_config.features.move_item = false;
+
+        let options = CreateOptions {
+            title: "To Move".to_string(),
+            body: String::new(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::new(),
+        };
+        let created = create(&source_dir, &source_config, options).await.unwrap();
+
+        let result = move_item(
+            &source_dir,
+            &target_dir,
+            &source_config,
+            &target_config,
+            &created.id,
+            None,
+        )
+        .await;
+
+        assert!(matches!(result, Err(StoreError::FeatureNotEnabled(_))));
     }
 }
