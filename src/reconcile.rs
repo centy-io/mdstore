@@ -9,6 +9,7 @@ use crate::error::StoreError;
 use crate::frontmatter::{generate_frontmatter, parse_frontmatter};
 use crate::types::Frontmatter;
 use crate::util::now_iso;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
@@ -19,7 +20,16 @@ struct ItemInfo {
     /// Item ID (from filename without .md)
     id: String,
     display_number: u32,
-    created_at: String,
+    /// Parsed creation timestamp for reliable chronological ordering.
+    ///
+    /// Stored as `DateTime<Utc>` rather than the raw string so that sorting is
+    /// always correct regardless of the timezone offset present in the value.
+    /// String-based comparison of ISO 8601 timestamps only coincides with
+    /// chronological order when every timestamp uses the same UTC offset; a
+    /// value like `"2024-01-01T10:00:00-02:00"` sorts *before*
+    /// `"2024-01-01T10:00:00Z"` lexicographically even though it represents a
+    /// *later* point in time.
+    created_at: DateTime<Utc>,
 }
 
 /// Check if a filename is a valid item `.md` file (not `config.yaml` or other files).
@@ -108,10 +118,18 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
 
         if let Some(dn) = frontmatter.display_number {
             let item_id = name.trim_end_matches(".md").to_string();
+            let created_at_str = &frontmatter.created_at;
+            let created_at = DateTime::parse_from_rfc3339(created_at_str)
+                .map(|dt| dt.to_utc())
+                .map_err(|_| {
+                    StoreError::Custom(format!(
+                        "Invalid created_at timestamp '{created_at_str}' in item '{item_id}'"
+                    ))
+                })?;
             items.push(ItemInfo {
                 id: item_id,
                 display_number: dn,
-                created_at: frontmatter.created_at,
+                created_at,
             });
         }
     }
@@ -146,8 +164,11 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
             continue;
         }
 
-        // Sort by created_at (oldest first)
-        group.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+        // Sort by created_at (oldest first). We use the pre-parsed DateTime<Utc>
+        // value so that items with different timezone offsets are ordered
+        // correctly; lexicographic string comparison is not equivalent to
+        // chronological order when offsets differ.
+        group.sort_by_key(|item| item.created_at);
 
         // Keep the first (oldest), reassign the rest
         for item in group.iter().skip(1) {
@@ -271,5 +292,43 @@ mod tests {
 
         let reassigned = reconcile_display_numbers(&storage_path).await.unwrap();
         assert_eq!(reassigned, 0);
+    }
+
+    /// Verify that conflict resolution uses true chronological order even when
+    /// timestamps carry non-UTC offsets.
+    ///
+    /// `"2024-01-01T10:00:00-02:00"` represents 12:00 UTC and is therefore
+    /// *newer* than `"2024-01-01T10:00:00Z"` (10:00 UTC), yet sorts *before*
+    /// it lexicographically (because `-` < `Z` in ASCII).  String-based sorting
+    /// would incorrectly treat the `-02:00` item as older and keep its display
+    /// number; DateTime-based sorting correctly identifies the UTC item as older.
+    #[tokio::test]
+    async fn test_reconcile_respects_timezone_offsets() {
+        let temp = TempDir::new().unwrap();
+        let storage_path = temp.path().join("items");
+        fs::create_dir_all(&storage_path).await.unwrap();
+
+        // item-1: 10:00 UTC — the genuinely older item; should keep display #1
+        create_test_item(&storage_path, "item-1", 1, "2024-01-01T10:00:00Z").await;
+        // item-2: 12:00 UTC (expressed as 10:00-02:00) — the newer item;
+        // sorts *before* item-1 lexicographically, but is actually later.
+        create_test_item(&storage_path, "item-2", 1, "2024-01-01T10:00:00-02:00").await;
+
+        let reassigned = reconcile_display_numbers(&storage_path).await.unwrap();
+        assert_eq!(reassigned, 1);
+
+        // item-1 (older in UTC) must retain display number 1
+        let content = fs::read_to_string(storage_path.join("item-1.md"))
+            .await
+            .unwrap();
+        let (fm, _, _) = parse_frontmatter::<Frontmatter>(&content).unwrap();
+        assert_eq!(fm.display_number, Some(1));
+
+        // item-2 (newer in UTC) must be reassigned
+        let content = fs::read_to_string(storage_path.join("item-2.md"))
+            .await
+            .unwrap();
+        let (fm, _, _) = parse_frontmatter::<Frontmatter>(&content).unwrap();
+        assert_ne!(fm.display_number, Some(1));
     }
 }
