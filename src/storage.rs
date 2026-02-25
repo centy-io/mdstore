@@ -9,7 +9,7 @@ use crate::filters::Filters;
 use crate::frontmatter::{
     generate_frontmatter, generate_frontmatter_raw, parse_frontmatter, parse_frontmatter_raw,
 };
-use crate::reconcile::get_next_display_number;
+use crate::reconcile::{acquire_display_number_lock, get_next_display_number};
 use crate::types::{
     CreateOptions, DuplicateOptions, DuplicateResult, Frontmatter, Item, MoveResult, UpdateOptions,
 };
@@ -94,10 +94,13 @@ pub async fn create(
         return Err(StoreError::AlreadyExists(id));
     }
 
-    // Assign display number if enabled
+    // Acquire per-directory lock to serialize display number assignment (held until write)
+    let _dn_guard;
     let display_number = if config.features.display_number {
+        _dn_guard = Some(acquire_display_number_lock(type_dir).await);
         Some(get_next_display_number(type_dir).await?)
     } else {
+        _dn_guard = None;
         None
     };
 
@@ -466,10 +469,13 @@ pub async fn duplicate(
         validate_priority(config, priority)?;
     }
 
-    // Assign display number if enabled
+    // Acquire per-directory lock to serialize display number assignment (held until write)
+    let _dn_guard;
     let display_number = if config.features.display_number {
+        _dn_guard = Some(acquire_display_number_lock(&options.target_dir).await);
         Some(get_next_display_number(&options.target_dir).await?)
     } else {
+        _dn_guard = None;
         None
     };
 
@@ -579,9 +585,11 @@ pub async fn move_item(
     let (mut yaml_value, title, body) =
         parse_frontmatter_raw(&content).map_err(|e| StoreError::FrontmatterError(e.to_string()))?;
 
-    // 9. If display_number feature: get next display number and update YAML
-    if target_config.features.display_number {
+    // 9. If display_number feature: acquire lock, get next display number, update YAML
+    // Lock held through write (step 11) to prevent concurrent duplicate assignment
+    let _dn_guard = if target_config.features.display_number {
         fs::create_dir_all(target_dir).await?;
+        let guard = acquire_display_number_lock(target_dir).await;
         let next_dn = get_next_display_number(target_dir).await?;
         if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
             map.insert(
@@ -589,7 +597,10 @@ pub async fn move_item(
                 serde_yaml::Value::Number(next_dn.into()),
             );
         }
-    }
+        Some(guard)
+    } else {
+        None
+    };
 
     // 10. Update updatedAt in YAML
     if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
@@ -981,6 +992,42 @@ mod tests {
             let created = create(&type_dir, &config, options).await.unwrap();
             assert_eq!(created.frontmatter.display_number, Some(i));
         }
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_create_unique_display_numbers() {
+        let temp = tempfile::tempdir().unwrap();
+        let type_dir = temp.path().join("issues");
+
+        let config = std::sync::Arc::new(issue_config());
+
+        // Spawn 10 concurrent creates and collect their display numbers
+        let handles: Vec<_> = (0..10)
+            .map(|i| {
+                let dir = type_dir.clone();
+                let cfg = std::sync::Arc::clone(&config);
+                tokio::spawn(async move {
+                    let options = CreateOptions {
+                        title: format!("Concurrent Issue {i}"),
+                        body: String::new(),
+                        id: None,
+                        status: Some("open".to_string()),
+                        priority: Some(2),
+                        custom_fields: HashMap::new(),
+                    };
+                    create(&dir, &cfg, options).await.unwrap()
+                })
+            })
+            .collect();
+
+        let mut display_numbers: Vec<u32> = Vec::new();
+        for handle in handles {
+            let item = handle.await.unwrap();
+            display_numbers.push(item.frontmatter.display_number.unwrap());
+        }
+
+        display_numbers.sort_unstable();
+        assert_eq!(display_numbers, (1..=10).collect::<Vec<u32>>());
     }
 
     #[tokio::test]

@@ -11,8 +11,33 @@ use crate::types::Frontmatter;
 use crate::util::now_iso;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, LazyLock, Mutex};
 use tokio::fs;
+use tokio::sync::{Mutex as TokioMutex, OwnedMutexGuard};
+
+/// Per-directory locks for serializing display number assignment within a process.
+static DIR_LOCKS: LazyLock<Mutex<HashMap<PathBuf, Arc<TokioMutex<()>>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn dir_lock(type_dir: &Path) -> Arc<TokioMutex<()>> {
+    let canonical = std::fs::canonicalize(type_dir).unwrap_or_else(|_| type_dir.to_path_buf());
+    let mut map = DIR_LOCKS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    Arc::clone(
+        map.entry(canonical)
+            .or_insert_with(|| Arc::new(TokioMutex::new(()))),
+    )
+}
+
+/// Acquire the per-directory lock for display number assignment.
+///
+/// The returned guard must be held until the item file has been written.
+/// This prevents concurrent creates from assigning the same display number.
+pub(crate) async fn acquire_display_number_lock(type_dir: &Path) -> OwnedMutexGuard<()> {
+    dir_lock(type_dir).lock_owned().await
+}
 
 /// Information about an item needed for reconciliation.
 #[derive(Debug, Clone)]
