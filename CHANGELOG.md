@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-03-05
+
+### Added
+
+- `comment` field on `Item`, `CreateOptions`, and `UpdateOptions`; frontmatter comments are preserved through all CRU operations, soft delete, restore, duplicate, and move
+- Custom fields are now flattened directly to top-level frontmatter instead of being nested under a `customFields:` key — **breaking change for existing stored files**
+
+### Fixed
+
+- Prevent race condition in display number assignment by holding a per-directory mutex from number selection through file write (#9)
+- Sort items by `DateTime<Utc>` in reconciliation to ensure correct chronological ordering when timestamps carry non-UTC offsets
+- Check target type's `move` feature flag in `move_item` before proceeding
+- Check `duplicate` feature flag in `duplicate()` before proceeding
+- Use `u32::try_from` instead of unchecked `as`-cast when counting reconciliation reassignments
+
+## [0.4.0] - 2026-02-22
+
+### Added
+
+- Multi-status filter: pass multiple statuses to `Filters` to match items in any of the given statuses
+- Priority range filter: filter items by minimum and maximum priority bounds
+
 ## [0.3.0] - 2026-02-17
 
 ### Added
