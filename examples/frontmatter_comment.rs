@@ -40,9 +40,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let type_dir = base.join("docs");
     let config = config();
 
-    // 1. Create an item with a frontmatter comment
     let comment = "# This file was auto-generated. Do not edit manually.";
-    let item = mdstore::create(
+
+    // --- File 1: comment is created and preserved ---
+
+    let item1 = mdstore::create(
         &type_dir,
         &config,
         CreateOptions {
@@ -57,55 +59,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    println!("Created '{}' (id: {})", item.title, item.id);
-    println!("Comment: {:?}\n", item.comment);
+    println!("Created '{}' (id: {})", item1.title, item1.id);
+    println!("Comment: {:?}", item1.comment);
 
-    // 2. Read it back — comment is returned as part of the item
-    let fetched = mdstore::get(&type_dir, &item.id).await?;
-    println!("Fetched comment: {:?}", fetched.comment);
-
-    // Show the raw file content so the comment placement is visible
-    let raw = tokio::fs::read_to_string(type_dir.join(format!("{}.md", item.id))).await?;
-    println!("\n--- Raw file ---\n{raw}--- end ---\n");
-
-    // 3. Update without specifying comment — existing comment is preserved
-    let updated = mdstore::update(
+    // Update body — comment is preserved because UpdateOptions::comment is None
+    let updated1 = mdstore::update(
         &type_dir,
         &config,
-        &item.id,
+        &item1.id,
         UpdateOptions {
             body: Some("Updated body content.".to_string()),
             ..Default::default()
         },
     )
     .await?;
-    println!("After update (comment preserved): {:?}", updated.comment);
+    println!("After update (comment preserved): {:?}", updated1.comment);
 
-    // 4. Replace the comment on update
-    let replaced = mdstore::update(
+    let raw1 = tokio::fs::read_to_string(type_dir.join(format!("{}.md", item1.id))).await?;
+    println!("\n--- File 1 (comment kept) ---\n{raw1}--- end ---\n");
+
+    // --- File 2: comment is created then cleared ---
+
+    let item2 = mdstore::create(
         &type_dir,
         &config,
-        &item.id,
-        UpdateOptions {
-            comment: Some("# Updated comment.".to_string()),
-            ..Default::default()
+        CreateOptions {
+            title: "Reference".to_string(),
+            body: "API reference docs.".to_string(),
+            id: None,
+            status: None,
+            priority: None,
+            custom_fields: HashMap::new(),
+            comment: Some(comment.to_string()),
         },
     )
     .await?;
-    println!("After comment replace: {:?}", replaced.comment);
 
-    // 5. Clear the comment by passing Some("")
-    let cleared = mdstore::update(
+    println!("Created '{}' (id: {})", item2.title, item2.id);
+    println!("Comment: {:?}", item2.comment);
+
+    // Clear the comment by passing Some("")
+    let cleared2 = mdstore::update(
         &type_dir,
         &config,
-        &item.id,
+        &item2.id,
         UpdateOptions {
             comment: Some(String::new()),
             ..Default::default()
         },
     )
     .await?;
-    println!("After comment clear: {:?}", cleared.comment);
+    println!("After comment clear: {:?}", cleared2.comment);
+
+    let raw2 = tokio::fs::read_to_string(type_dir.join(format!("{}.md", item2.id))).await?;
+    println!("\n--- File 2 (comment cleared) ---\n{raw2}--- end ---\n");
 
     Ok(())
 }

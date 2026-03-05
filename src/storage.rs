@@ -6,10 +6,7 @@
 use crate::config::{IdStrategy, TypeConfig};
 use crate::error::StoreError;
 use crate::filters::Filters;
-use crate::frontmatter::{
-    extract_frontmatter_comment, generate_frontmatter, generate_frontmatter_raw, parse_frontmatter,
-    parse_frontmatter_raw,
-};
+use crate::frontmatter::{extract_frontmatter_comment, generate_frontmatter, parse_frontmatter};
 use crate::reconcile::{acquire_display_number_lock, get_next_display_number};
 use crate::types::{
     CreateOptions, DuplicateOptions, DuplicateResult, Frontmatter, Item, MoveResult, UpdateOptions,
@@ -547,9 +544,8 @@ pub async fn duplicate(
 
 /// Move an item from one directory to another.
 ///
-/// Uses raw YAML preservation so that type-specific fields (e.g., `draft`,
-/// `isOrgIssue`, `orgSlug`) are kept intact without the generic layer needing
-/// to know about them.
+/// Custom and unknown fields are preserved via the `custom_fields` flatten map
+/// on `Frontmatter`, so no raw YAML manipulation is needed.
 pub async fn move_item(
     source_dir: &Path,
     target_dir: &Path,
@@ -589,8 +585,8 @@ pub async fn move_item(
     let content = fs::read_to_string(&source_file).await?;
     let comment = extract_frontmatter_comment(&content);
 
-    // Parse as Frontmatter for validation
-    let (frontmatter, _title, _body) = parse_frontmatter::<Frontmatter>(&content)
+    // Parse as Frontmatter — captures all fields (including unknown ones via custom_fields flatten)
+    let (mut frontmatter, title, body) = parse_frontmatter::<Frontmatter>(&content)
         .map_err(|e| StoreError::FrontmatterError(e.to_string()))?;
 
     // 4. Validate status against target config
@@ -616,53 +612,38 @@ pub async fn move_item(
     };
 
     // 7. Check target doesn't already exist
+    fs::create_dir_all(target_dir).await?;
     let target_file = target_dir.join(format!("{target_id}.md"));
     if target_file.exists() {
         return Err(StoreError::AlreadyExists(target_id));
     }
 
-    // 8. Parse raw YAML for field-preserving copy
-    let (mut yaml_value, title, body) =
-        parse_frontmatter_raw(&content).map_err(|e| StoreError::FrontmatterError(e.to_string()))?;
-
-    // 9. If display_number feature: acquire lock, get next display number, update YAML
-    // Lock held through write (step 11) to prevent concurrent duplicate assignment
+    // 8. If display_number feature: acquire lock and assign next display number.
+    // Lock held through write (step 9) to prevent concurrent duplicate assignment.
     let _dn_guard = if target_config.features.display_number {
-        fs::create_dir_all(target_dir).await?;
         let guard = acquire_display_number_lock(target_dir).await;
-        let next_dn = get_next_display_number(target_dir).await?;
-        if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
-            map.insert(
-                serde_yaml::Value::String("displayNumber".to_string()),
-                serde_yaml::Value::Number(next_dn.into()),
-            );
-        }
+        frontmatter.display_number = Some(get_next_display_number(target_dir).await?);
         Some(guard)
     } else {
         None
     };
 
-    // 10. Update updatedAt in YAML
-    if let serde_yaml::Value::Mapping(ref mut map) = yaml_value {
-        map.insert(
-            serde_yaml::Value::String("updatedAt".to_string()),
-            serde_yaml::Value::String(now_iso()),
-        );
-    }
-
-    // 11. Write to target (preserve comment from source)
-    fs::create_dir_all(target_dir).await?;
-    let new_content = generate_frontmatter_raw(&yaml_value, &title, &body, comment.as_deref());
+    // 9. Update timestamp and write to target (preserve comment from source)
+    frontmatter.updated_at = now_iso();
+    let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
     fs::write(&target_file, &new_content).await?;
 
-    // 12. Delete source file
+    // 10. Delete source file
     fs::remove_file(&source_file).await?;
 
-    // 13. Read and return the moved item
-    let moved_item = get(target_dir, &target_id).await?;
-
     Ok(MoveResult {
-        item: moved_item,
+        item: Item {
+            id: target_id,
+            title,
+            body,
+            frontmatter,
+            comment,
+        },
         old_id: item_id.to_string(),
     })
 }
@@ -1265,5 +1246,49 @@ mod tests {
         let result = duplicate(&config, dup_options).await;
         assert!(result.is_err());
         assert!(matches!(result, Err(StoreError::FeatureNotEnabled(_))));
+    }
+
+    #[tokio::test]
+    async fn test_move_item_preserves_custom_fields() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_dir = temp.path().join("source");
+        let target_dir = temp.path().join("target");
+
+        let config = issue_config();
+        let options = CreateOptions {
+            title: "With Custom Fields".to_string(),
+            body: "body".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::from([
+                ("draft".to_string(), serde_json::json!(true)),
+                ("env".to_string(), serde_json::json!("staging")),
+            ]),
+            comment: None,
+        };
+        let created = create(&source_dir, &config, options).await.unwrap();
+
+        let result = move_item(
+            &source_dir,
+            &target_dir,
+            &config,
+            &config,
+            &created.id,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            result.item.frontmatter.custom_fields.get("draft"),
+            Some(&serde_json::json!(true))
+        );
+        assert_eq!(
+            result.item.frontmatter.custom_fields.get("env"),
+            Some(&serde_json::json!("staging"))
+        );
+        // Source file should be gone
+        assert!(!source_dir.join(format!("{}.md", created.id)).exists());
     }
 }
