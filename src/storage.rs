@@ -1203,4 +1203,47 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(result, Err(StoreError::FeatureNotEnabled(_))));
     }
+
+    #[tokio::test]
+    async fn test_move_item_preserves_custom_fields() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_dir = temp.path().join("source");
+        let target_dir = temp.path().join("target");
+
+        let config = issue_config();
+        let options = CreateOptions {
+            title: "With Custom Fields".to_string(),
+            body: "body".to_string(),
+            id: None,
+            status: Some("open".to_string()),
+            priority: Some(1),
+            custom_fields: HashMap::from([
+                ("draft".to_string(), serde_json::json!(true)),
+                ("env".to_string(), serde_json::json!("staging")),
+            ]),
+        };
+        let created = create(&source_dir, &config, options).await.unwrap();
+
+        let result = move_item(
+            &source_dir,
+            &target_dir,
+            &config,
+            &config,
+            &created.id,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            result.item.frontmatter.custom_fields.get("draft"),
+            Some(&serde_json::json!(true))
+        );
+        assert_eq!(
+            result.item.frontmatter.custom_fields.get("env"),
+            Some(&serde_json::json!("staging"))
+        );
+        // Source file should be gone
+        assert!(!source_dir.join(format!("{}.md", created.id)).exists());
+    }
 }
