@@ -6,7 +6,7 @@
 use crate::config::{IdStrategy, TypeConfig};
 use crate::error::StoreError;
 use crate::filters::Filters;
-use crate::frontmatter::{generate_frontmatter, parse_frontmatter};
+use crate::frontmatter::{extract_frontmatter_comment, generate_frontmatter, parse_frontmatter};
 use crate::reconcile::{acquire_display_number_lock, get_next_display_number};
 use crate::types::{
     CreateOptions, DuplicateOptions, DuplicateResult, Frontmatter, Item, MoveResult, UpdateOptions,
@@ -138,15 +138,21 @@ pub async fn create(
     };
 
     // Write the item file
-    let content = generate_frontmatter(&frontmatter, &options.title, &options.body);
+    let comment = options.comment.clone();
+    let content = generate_frontmatter(
+        &frontmatter,
+        &options.title,
+        &options.body,
+        comment.as_deref(),
+    );
     fs::write(&file_path, &content).await?;
 
     Ok(Item {
         id,
-
         title: options.title,
         body: options.body,
         frontmatter,
+        comment,
     })
 }
 
@@ -159,15 +165,16 @@ pub async fn get(type_dir: &Path, id: &str) -> Result<Item, StoreError> {
     }
 
     let content = fs::read_to_string(&file_path).await?;
+    let comment = extract_frontmatter_comment(&content);
     let (frontmatter, title, body) = parse_frontmatter::<Frontmatter>(&content)
         .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
 
     Ok(Item {
         id: id.to_string(),
-
         title,
         body,
         frontmatter,
+        comment,
     })
 }
 
@@ -203,6 +210,7 @@ pub async fn list(type_dir: &Path, filters: Filters) -> Result<Vec<Item>, StoreE
             }
         };
 
+        let comment = extract_frontmatter_comment(&content);
         let (frontmatter, title, body) = match parse_frontmatter::<Frontmatter>(&content) {
             Ok(result) => result,
             Err(e) => {
@@ -213,10 +221,10 @@ pub async fn list(type_dir: &Path, filters: Filters) -> Result<Vec<Item>, StoreE
 
         items.push(Item {
             id,
-
             title,
             body,
             frontmatter,
+            comment,
         });
     }
 
@@ -297,6 +305,7 @@ pub async fn update(
     }
 
     let content = fs::read_to_string(&file_path).await?;
+    let existing_comment = extract_frontmatter_comment(&content);
     let (mut frontmatter, current_title, current_body) = parse_frontmatter::<Frontmatter>(&content)
         .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
 
@@ -327,16 +336,23 @@ pub async fn update(
     let title = options.title.unwrap_or(current_title);
     let body = options.body.unwrap_or(current_body);
 
+    // Resolve comment: explicit update overrides existing; None preserves existing
+    let comment = match options.comment {
+        Some(c) if c.is_empty() => None,
+        Some(c) => Some(c),
+        None => existing_comment,
+    };
+
     // Write updated file
-    let new_content = generate_frontmatter(&frontmatter, &title, &body);
+    let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
     fs::write(&file_path, &new_content).await?;
 
     Ok(Item {
         id: id.to_string(),
-
         title,
         body,
         frontmatter,
+        comment,
     })
 }
 
@@ -380,6 +396,7 @@ pub async fn soft_delete(type_dir: &Path, id: &str) -> Result<(), StoreError> {
     }
 
     let content = fs::read_to_string(&file_path).await?;
+    let comment = extract_frontmatter_comment(&content);
     let (mut frontmatter, title, body) = parse_frontmatter::<Frontmatter>(&content)
         .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
 
@@ -391,7 +408,7 @@ pub async fn soft_delete(type_dir: &Path, id: &str) -> Result<(), StoreError> {
     frontmatter.deleted_at = Some(now.clone());
     frontmatter.updated_at = now;
 
-    let new_content = generate_frontmatter(&frontmatter, &title, &body);
+    let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
     fs::write(&file_path, &new_content).await?;
 
     Ok(())
@@ -406,6 +423,7 @@ pub async fn restore(type_dir: &Path, id: &str) -> Result<(), StoreError> {
     }
 
     let content = fs::read_to_string(&file_path).await?;
+    let comment = extract_frontmatter_comment(&content);
     let (mut frontmatter, title, body) = parse_frontmatter::<Frontmatter>(&content)
         .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
 
@@ -416,7 +434,7 @@ pub async fn restore(type_dir: &Path, id: &str) -> Result<(), StoreError> {
     frontmatter.deleted_at = None;
     frontmatter.updated_at = now_iso();
 
-    let new_content = generate_frontmatter(&frontmatter, &title, &body);
+    let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
     fs::write(&file_path, &new_content).await?;
 
     Ok(())
@@ -502,17 +520,23 @@ pub async fn duplicate(
         custom_fields: source_item.frontmatter.custom_fields.clone(),
     };
 
-    // Write new item file
-    let content = generate_frontmatter(&frontmatter, &new_title, &source_item.body);
+    // Write new item file (preserve comment from source)
+    let comment = source_item.comment.clone();
+    let content = generate_frontmatter(
+        &frontmatter,
+        &new_title,
+        &source_item.body,
+        comment.as_deref(),
+    );
     fs::write(&target_file, &content).await?;
 
     Ok(DuplicateResult {
         item: Item {
             id: new_id,
-
             title: new_title,
             body: source_item.body,
             frontmatter,
+            comment,
         },
         original_id: options.item_id,
     })
@@ -559,6 +583,7 @@ pub async fn move_item(
         return Err(StoreError::NotFound(item_id.to_string()));
     }
     let content = fs::read_to_string(&source_file).await?;
+    let comment = extract_frontmatter_comment(&content);
 
     // Parse as Frontmatter — captures all fields (including unknown ones via custom_fields flatten)
     let (mut frontmatter, title, body) = parse_frontmatter::<Frontmatter>(&content)
@@ -603,9 +628,9 @@ pub async fn move_item(
         None
     };
 
-    // 9. Update timestamp and write to target
+    // 9. Update timestamp and write to target (preserve comment from source)
     frontmatter.updated_at = now_iso();
-    let new_content = generate_frontmatter(&frontmatter, &title, &body);
+    let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
     fs::write(&target_file, &new_content).await?;
 
     // 10. Delete source file
@@ -617,6 +642,7 @@ pub async fn move_item(
             title,
             body,
             frontmatter,
+            comment,
         },
         old_id: item_id.to_string(),
     })
@@ -680,6 +706,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -708,6 +735,7 @@ mod tests {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -731,6 +759,7 @@ mod tests {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -750,6 +779,7 @@ mod tests {
             status: Some("nonexistent".to_string()),
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let result = create(&type_dir, &config, options).await;
@@ -770,6 +800,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(99),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let result = create(&type_dir, &config, options).await;
@@ -797,6 +828,7 @@ mod tests {
                 status: Some(status.to_string()),
                 priority: Some(2),
                 custom_fields: HashMap::new(),
+                comment: None,
             };
             create(&type_dir, &config, options).await.unwrap();
         }
@@ -835,6 +867,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -845,6 +878,7 @@ mod tests {
             status: Some("closed".to_string()),
             priority: Some(1),
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
+            comment: None,
         };
 
         let updated = update(&type_dir, &config, &created.id, update_options)
@@ -886,6 +920,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -926,6 +961,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -955,6 +991,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -982,6 +1019,7 @@ mod tests {
                 status: Some("open".to_string()),
                 priority: Some(2),
                 custom_fields: HashMap::new(),
+                comment: None,
             };
 
             let created = create(&type_dir, &config, options).await.unwrap();
@@ -1009,6 +1047,7 @@ mod tests {
                         status: Some("open".to_string()),
                         priority: Some(2),
                         custom_fields: HashMap::new(),
+                        comment: None,
                     };
                     create(&dir, &cfg, options).await.unwrap()
                 })
@@ -1038,6 +1077,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(1),
             custom_fields: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -1078,6 +1118,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         let created = create(&type_dir, &config, options).await.unwrap();
@@ -1112,6 +1153,7 @@ mod tests {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         };
 
         create(&type_dir, &config, options.clone()).await.unwrap();
@@ -1158,6 +1200,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(1),
             custom_fields: HashMap::new(),
+            comment: None,
         };
         let created = create(&source_dir, &source_config, options).await.unwrap();
 
@@ -1189,6 +1232,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
         let created = create(&type_dir, &config, options).await.unwrap();
 
@@ -1221,6 +1265,7 @@ mod tests {
                 ("draft".to_string(), serde_json::json!(true)),
                 ("env".to_string(), serde_json::json!("staging")),
             ]),
+            comment: None,
         };
         let created = create(&source_dir, &config, options).await.unwrap();
 

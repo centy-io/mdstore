@@ -36,8 +36,8 @@ pub use config::{
 pub use error::StoreError;
 pub use filters::Filters;
 pub use frontmatter::{
-    generate_frontmatter, generate_frontmatter_raw, parse_frontmatter, parse_frontmatter_raw,
-    FrontmatterError,
+    extract_frontmatter_comment, generate_frontmatter, generate_frontmatter_raw, parse_frontmatter,
+    parse_frontmatter_raw, FrontmatterError,
 };
 pub use id::{Identifiable, ItemId};
 pub use metadata::CommonMetadata;
