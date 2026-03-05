@@ -28,8 +28,10 @@ pub struct Frontmatter {
     /// ISO timestamp when soft-deleted (empty if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
-    /// Custom fields for extensibility
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    /// Custom fields for extensibility — flattened to the top level of the
+    /// frontmatter so users editing files by hand can write `myField: value`
+    /// directly without a `customFields:` wrapper.
+    #[serde(flatten)]
     pub custom_fields: HashMap<String, serde_json::Value>,
 }
 
@@ -147,6 +149,8 @@ mod tests {
         assert!(!yaml.contains("priority"));
         assert!(!yaml.contains("deletedAt"));
         assert!(!yaml.contains("customFields"));
+        // No custom field keys should appear either
+        assert!(!yaml.contains("env:"));
         // Should contain required fields
         assert!(yaml.contains("createdAt"));
         assert!(yaml.contains("updatedAt"));
@@ -168,7 +172,9 @@ mod tests {
         assert!(yaml.contains("status: open"));
         assert!(yaml.contains("priority: 2"));
         assert!(yaml.contains("deletedAt"));
-        assert!(yaml.contains("customFields"));
+        // Custom fields are flattened to the top level — no `customFields:` wrapper
+        assert!(!yaml.contains("customFields:"));
+        assert!(yaml.contains("env: prod"));
     }
 
     #[test]
