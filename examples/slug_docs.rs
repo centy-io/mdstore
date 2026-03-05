@@ -42,6 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await?;
@@ -57,6 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await?;
@@ -73,6 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             status: None,
             priority: None,
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await?;
