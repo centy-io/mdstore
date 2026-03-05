@@ -44,6 +44,8 @@ pub struct Item {
     pub body: String,
     /// Parsed frontmatter metadata
     pub frontmatter: Frontmatter,
+    /// Optional comment at the top of the frontmatter block (raw YAML comment lines)
+    pub comment: Option<String>,
 }
 
 /// Options for creating a new item.
@@ -61,6 +63,8 @@ pub struct CreateOptions {
     pub priority: Option<u32>,
     /// Custom fields
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// Optional YAML comment lines to write at the top of the frontmatter block
+    pub comment: Option<String>,
 }
 
 /// Options for duplicating an item.
@@ -100,6 +104,8 @@ pub struct UpdateOptions {
     pub priority: Option<u32>,
     /// Custom fields to merge (existing keys are overwritten, new keys are added)
     pub custom_fields: HashMap<String, serde_json::Value>,
+    /// New comment (None = preserve existing; Some("") = clear comment; Some(s) = replace)
+    pub comment: Option<String>,
 }
 
 /// Options for moving an item to another location.
@@ -190,6 +196,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             custom_fields: HashMap::new(),
+            comment: None,
         };
         assert_eq!(opts.title, "Test");
         assert!(opts.id.is_none());

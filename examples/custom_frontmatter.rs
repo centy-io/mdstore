@@ -59,6 +59,7 @@ existing tooling like editors, linters, and static site generators.";
         &new_post,
         "Async I/O Patterns",
         "A deep dive into async file operations in Rust.",
+        None,
     );
 
     println!("\n--- Generated markdown ---\n{generated}");

@@ -46,6 +46,7 @@ async fn create_items(
             status: Some("open".to_string()),
             priority: Some(1),
             custom_fields: HashMap::new(),
+            comment: None,
         },
     )
     .await?;
@@ -69,6 +70,7 @@ async fn create_items(
                 "component".to_string(),
                 serde_json::json!("frontend"),
             )]),
+            comment: None,
         },
     )
     .await?;

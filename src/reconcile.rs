@@ -213,7 +213,8 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
                 .map_err(|e| StoreError::Custom(format!("Frontmatter error: {e}")))?;
         frontmatter.display_number = Some(new_display_number);
         frontmatter.updated_at = now_iso();
-        let new_content = generate_frontmatter(&frontmatter, &title, &body);
+        let comment = crate::frontmatter::extract_frontmatter_comment(&content);
+        let new_content = generate_frontmatter(&frontmatter, &title, &body, comment.as_deref());
         fs::write(&file_path, new_content).await?;
     }
 
@@ -242,7 +243,7 @@ mod tests {
             custom_fields: HashMap::new(),
         };
 
-        let content = generate_frontmatter(&frontmatter, &format!("Item {id}"), "");
+        let content = generate_frontmatter(&frontmatter, &format!("Item {id}"), "", None);
         fs::write(storage_path.join(format!("{id}.md")), content)
             .await
             .unwrap();

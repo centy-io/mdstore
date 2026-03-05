@@ -98,15 +98,54 @@ pub fn parse_frontmatter_raw(
     Ok((value, title, body))
 }
 
+/// Extract the YAML comment block from the top of the frontmatter section.
+///
+/// Returns the raw comment lines (including `# ` prefix) as a single string,
+/// or `None` if no comment lines are found at the top of the frontmatter.
+pub fn extract_frontmatter_comment(content: &str) -> Option<String> {
+    let content = content.trim_start();
+    if !content.starts_with("---") {
+        return None;
+    }
+    let rest = content.get(3..)?.trim_start_matches('\n');
+    let end = rest.find("\n---")?;
+    let fm_block = &rest[..end];
+
+    let mut comment_lines: Vec<&str> = Vec::new();
+    for line in fm_block.lines() {
+        if line.starts_with('#') {
+            comment_lines.push(line);
+        } else {
+            break;
+        }
+    }
+
+    if comment_lines.is_empty() {
+        None
+    } else {
+        Some(comment_lines.join("\n"))
+    }
+}
+
 /// Generate markdown content from a raw `serde_yaml::Value`.
-pub fn generate_frontmatter_raw(value: &serde_yaml::Value, title: &str, body: &str) -> String {
+pub fn generate_frontmatter_raw(
+    value: &serde_yaml::Value,
+    title: &str,
+    body: &str,
+    comment: Option<&str>,
+) -> String {
     let yaml = serde_yaml::to_string(value).unwrap_or_default();
     let yaml = yaml.trim_end();
 
+    let fm_content = match comment {
+        Some(c) if !c.is_empty() => format!("{c}\n{yaml}"),
+        _ => yaml.to_string(),
+    };
+
     if body.is_empty() {
-        format!("---\n{yaml}\n---\n\n# {title}\n")
+        format!("---\n{fm_content}\n---\n\n# {title}\n")
     } else {
-        format!("---\n{yaml}\n---\n\n# {title}\n\n{body}\n")
+        format!("---\n{fm_content}\n---\n\n# {title}\n\n{body}\n")
     }
 }
 
@@ -116,19 +155,30 @@ pub fn generate_frontmatter_raw(value: &serde_yaml::Value, title: &str, body: &s
 /// - `metadata`: Struct to serialize as YAML frontmatter
 /// - `title`: The H1 heading title
 /// - `body`: The body content after the title
+/// - `comment`: Optional YAML comment lines to write at the top of the frontmatter block
 ///
 /// # Returns
 /// Formatted markdown string with frontmatter
-pub fn generate_frontmatter<T: Serialize>(metadata: &T, title: &str, body: &str) -> String {
+pub fn generate_frontmatter<T: Serialize>(
+    metadata: &T,
+    title: &str,
+    body: &str,
+    comment: Option<&str>,
+) -> String {
     // Serialize metadata to YAML
     let yaml = serde_yaml::to_string(metadata).unwrap_or_default();
     // serde_yaml adds a trailing newline, so trim it
     let yaml = yaml.trim_end();
 
+    let fm_content = match comment {
+        Some(c) if !c.is_empty() => format!("{c}\n{yaml}"),
+        _ => yaml.to_string(),
+    };
+
     if body.is_empty() {
-        format!("---\n{yaml}\n---\n\n# {title}\n")
+        format!("---\n{fm_content}\n---\n\n# {title}\n")
     } else {
-        format!("---\n{yaml}\n---\n\n# {title}\n\n{body}\n")
+        format!("---\n{fm_content}\n---\n\n# {title}\n\n{body}\n")
     }
 }
 
@@ -235,7 +285,7 @@ Line 3.";
             draft: false,
         };
 
-        let result = generate_frontmatter(&metadata, "Test Title", "Body content.");
+        let result = generate_frontmatter(&metadata, "Test Title", "Body content.", None);
 
         assert!(result.starts_with("---\n"));
         assert!(result.contains("displayNumber: 42"));
@@ -252,10 +302,25 @@ Line 3.";
             draft: true,
         };
 
-        let result = generate_frontmatter(&metadata, "Title Only", "");
+        let result = generate_frontmatter(&metadata, "Title Only", "", None);
 
         assert!(result.contains("# Title Only"));
         assert!(result.ends_with("# Title Only\n"));
+    }
+
+    #[test]
+    fn test_generate_frontmatter_with_comment() {
+        let metadata = TestMetadata {
+            display_number: 1,
+            status: "open".to_string(),
+            draft: false,
+        };
+        let comment = "# This file was auto-generated. Do not edit manually.";
+
+        let result = generate_frontmatter(&metadata, "My Doc", "Body.", Some(comment));
+
+        assert!(result.starts_with("---\n# This file was auto-generated"));
+        assert!(result.contains("displayNumber: 1"));
     }
 
     #[test]
@@ -268,13 +333,48 @@ Line 3.";
         let original_title = "Round Trip Test";
         let original_body = "This should survive the round trip.";
 
-        let generated = generate_frontmatter(&original_metadata, original_title, original_body);
+        let generated =
+            generate_frontmatter(&original_metadata, original_title, original_body, None);
         let (parsed_metadata, parsed_title, parsed_body): (TestMetadata, String, String) =
             parse_frontmatter(&generated).unwrap();
 
         assert_eq!(parsed_metadata, original_metadata);
         assert_eq!(parsed_title, original_title);
         assert_eq!(parsed_body, original_body);
+    }
+
+    #[test]
+    fn test_roundtrip_with_comment() {
+        let original_metadata = TestMetadata {
+            display_number: 5,
+            status: "open".to_string(),
+            draft: false,
+        };
+        let comment = "# Auto-generated";
+
+        let generated = generate_frontmatter(&original_metadata, "Title", "Body.", Some(comment));
+        let extracted = extract_frontmatter_comment(&generated);
+        let (parsed_metadata, parsed_title, _): (TestMetadata, String, String) =
+            parse_frontmatter(&generated).unwrap();
+
+        assert_eq!(extracted, Some(comment.to_string()));
+        assert_eq!(parsed_metadata, original_metadata);
+        assert_eq!(parsed_title, "Title");
+    }
+
+    #[test]
+    fn test_extract_frontmatter_comment_none() {
+        let content = "---\ndisplayNumber: 1\nstatus: open\n---\n\n# Title\n";
+        assert_eq!(extract_frontmatter_comment(content), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_comment_multiline() {
+        let content = "---\n# Line 1\n# Line 2\ndisplayNumber: 1\n---\n\n# Title\n";
+        assert_eq!(
+            extract_frontmatter_comment(content),
+            Some("# Line 1\n# Line 2".to_string())
+        );
     }
 
     #[test]
