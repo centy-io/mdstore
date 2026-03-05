@@ -1,10 +1,4 @@
 {
-  "allowedStates": [
-    "open",
-    "planning",
-    "in-progress",
-    "closed"
-  ],
   "customFields": [],
   "defaults": {},
   "hooks": [],
