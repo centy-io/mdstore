@@ -203,7 +203,8 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
     }
 
     // Step 5: Write reassignments
-    let reassignment_count = reassignments.len() as u32;
+    let reassignment_count = u32::try_from(reassignments.len())
+        .map_err(|e| StoreError::Custom(format!("reassignment_count overflow: {e}")))?;
 
     for (item_info, new_display_number) in reassignments {
         let file_path = type_dir.join(format!("{}.md", item_info.id));
