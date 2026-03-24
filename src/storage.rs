@@ -134,6 +134,7 @@ pub async fn create(
         created_at: now.clone(),
         updated_at: now,
         deleted_at: None,
+        tags: options.tags,
         custom_fields: options.custom_fields,
     };
 
@@ -264,6 +265,22 @@ fn apply_filters(mut items: Vec<Item>, filters: &Filters) -> Vec<Item> {
         items.retain(|item| item.frontmatter.priority.is_some_and(|p| p >= gte));
     }
 
+    // Filter by tags — item must have at least one of the given tags
+    if let Some(ref any_tags) = filters.tags_any {
+        items.retain(|item| {
+            let item_tags = item.frontmatter.tags.as_deref().unwrap_or(&[]);
+            any_tags.iter().any(|t| item_tags.contains(t))
+        });
+    }
+
+    // Filter by tags — item must have all of the given tags
+    if let Some(ref all_tags) = filters.tags_all {
+        items.retain(|item| {
+            let item_tags = item.frontmatter.tags.as_deref().unwrap_or(&[]);
+            all_tags.iter().all(|t| item_tags.contains(t))
+        });
+    }
+
     // Sort by display_number (if present), then by created_at
     items.sort_by(
         |a, b| match (a.frontmatter.display_number, b.frontmatter.display_number) {
@@ -324,6 +341,15 @@ pub async fn update(
     if let Some(new_priority) = options.priority {
         validate_priority(config, new_priority)?;
         frontmatter.priority = Some(new_priority);
+    }
+
+    // Update tags if provided
+    if let Some(new_tags) = options.tags {
+        frontmatter.tags = if new_tags.is_empty() {
+            None
+        } else {
+            Some(new_tags)
+        };
     }
 
     // Merge custom fields
@@ -517,6 +543,7 @@ pub async fn duplicate(
         created_at: now.clone(),
         updated_at: now,
         deleted_at: None,
+        tags: source_item.frontmatter.tags.clone(),
         custom_fields: source_item.frontmatter.custom_fields.clone(),
     };
 
@@ -705,6 +732,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -734,6 +762,7 @@ mod tests {
             id: None,
             status: None,
             priority: None,
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -758,6 +787,7 @@ mod tests {
             id: None,
             status: None,
             priority: None,
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -778,6 +808,7 @@ mod tests {
             id: None,
             status: Some("nonexistent".to_string()),
             priority: None,
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -799,6 +830,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(99),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -827,6 +859,7 @@ mod tests {
                 id: None,
                 status: Some(status.to_string()),
                 priority: Some(2),
+                tags: None,
                 custom_fields: HashMap::new(),
                 comment: None,
             };
@@ -866,6 +899,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -877,6 +911,7 @@ mod tests {
             body: Some("Updated body.".to_string()),
             status: Some("closed".to_string()),
             priority: Some(1),
+            tags: None,
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
             comment: None,
         };
@@ -919,6 +954,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -960,6 +996,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -990,6 +1027,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1018,6 +1056,7 @@ mod tests {
                 id: None,
                 status: Some("open".to_string()),
                 priority: Some(2),
+                tags: None,
                 custom_fields: HashMap::new(),
                 comment: None,
             };
@@ -1046,6 +1085,7 @@ mod tests {
                         id: None,
                         status: Some("open".to_string()),
                         priority: Some(2),
+                        tags: None,
                         custom_fields: HashMap::new(),
                         comment: None,
                     };
@@ -1076,6 +1116,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(1),
+            tags: None,
             custom_fields: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
             comment: None,
         };
@@ -1117,6 +1158,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1152,6 +1194,7 @@ mod tests {
             id: None,
             status: None,
             priority: None,
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1199,6 +1242,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(1),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1231,6 +1275,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1261,6 +1306,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(1),
+            tags: None,
             custom_fields: HashMap::from([
                 ("draft".to_string(), serde_json::json!(true)),
                 ("env".to_string(), serde_json::json!("staging")),

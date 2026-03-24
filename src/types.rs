@@ -28,6 +28,10 @@ pub struct Frontmatter {
     /// ISO timestamp when soft-deleted (empty if not deleted)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<String>,
+    /// Free-form tags for categorization (e.g. `["bug", "frontend"]`).
+    /// Omitted when empty or not set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
     /// Custom fields for extensibility — flattened to the top level of the
     /// frontmatter so users editing files by hand can write `myField: value`
     /// directly without a `customFields:` wrapper.
@@ -63,6 +67,8 @@ pub struct CreateOptions {
     pub status: Option<String>,
     /// Initial priority (validated if features.priority is enabled)
     pub priority: Option<u32>,
+    /// Free-form tags for categorization (None = no tags on create)
+    pub tags: Option<Vec<String>>,
     /// Custom fields
     pub custom_fields: HashMap<String, serde_json::Value>,
     /// Optional YAML comment lines to write at the top of the frontmatter block
@@ -104,6 +110,8 @@ pub struct UpdateOptions {
     pub status: Option<String>,
     /// New priority (None = keep current, validated if features.priority is enabled)
     pub priority: Option<u32>,
+    /// New tags (None = keep current; Some([]) = clear all tags; Some([...]) = replace)
+    pub tags: Option<Vec<String>>,
     /// Custom fields to merge (existing keys are overwritten, new keys are added)
     pub custom_fields: HashMap<String, serde_json::Value>,
     /// New comment (None = preserve existing; Some("") = clear comment; Some(s) = replace)
@@ -140,6 +148,7 @@ mod tests {
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-01T00:00:00Z".to_string(),
             deleted_at: None,
+            tags: None,
             custom_fields: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -148,6 +157,7 @@ mod tests {
         assert!(!yaml.contains("status"));
         assert!(!yaml.contains("priority"));
         assert!(!yaml.contains("deletedAt"));
+        assert!(!yaml.contains("tags"));
         assert!(!yaml.contains("customFields"));
         // No custom field keys should appear either
         assert!(!yaml.contains("env:"));
@@ -165,6 +175,7 @@ mod tests {
             created_at: "2024-01-01T00:00:00Z".to_string(),
             updated_at: "2024-01-02T00:00:00Z".to_string(),
             deleted_at: Some("2024-01-03T00:00:00Z".to_string()),
+            tags: Some(vec!["bug".to_string(), "frontend".to_string()]),
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -172,6 +183,8 @@ mod tests {
         assert!(yaml.contains("status: open"));
         assert!(yaml.contains("priority: 2"));
         assert!(yaml.contains("deletedAt"));
+        assert!(yaml.contains("- bug"));
+        assert!(yaml.contains("- frontend"));
         // Custom fields are flattened to the top level — no `customFields:` wrapper
         assert!(!yaml.contains("customFields:"));
         assert!(yaml.contains("env: prod"));
@@ -186,6 +199,7 @@ mod tests {
             created_at: "2024-06-15T12:00:00Z".to_string(),
             updated_at: "2024-06-15T13:00:00Z".to_string(),
             deleted_at: None,
+            tags: Some(vec!["urgent".to_string()]),
             custom_fields: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -201,6 +215,7 @@ mod tests {
             id: None,
             status: Some("open".to_string()),
             priority: Some(2),
+            tags: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -215,6 +230,7 @@ mod tests {
         assert!(opts.body.is_none());
         assert!(opts.status.is_none());
         assert!(opts.priority.is_none());
+        assert!(opts.tags.is_none());
         assert!(opts.custom_fields.is_empty());
     }
 }

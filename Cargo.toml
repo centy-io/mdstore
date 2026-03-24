@@ -1,6 +1,6 @@
 [package]
 name = "mdstore"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 rust-version = "1.85"
 description = "A file-based storage engine that stores structured data as Markdown files with YAML frontmatter"

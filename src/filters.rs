@@ -11,6 +11,10 @@ pub struct Filters {
     pub priority_lte: Option<u32>,
     /// Filter by priority greater than or equal to this value; None = no filter
     pub priority_gte: Option<u32>,
+    /// Filter by tags — item must have at least one of these tags; None = no filter
+    pub tags_any: Option<Vec<String>>,
+    /// Filter by tags — item must have all of these tags; None = no filter
+    pub tags_all: Option<Vec<String>>,
     /// Include soft-deleted items
     pub include_deleted: bool,
     /// Limit number of results
@@ -60,6 +64,20 @@ impl Filters {
         self
     }
 
+    /// Filter to items that have at least one of the given tags
+    #[must_use]
+    pub fn with_tags_any(mut self, tags: Vec<String>) -> Self {
+        self.tags_any = Some(tags);
+        self
+    }
+
+    /// Filter to items that have all of the given tags
+    #[must_use]
+    pub fn with_tags_all(mut self, tags: Vec<String>) -> Self {
+        self.tags_all = Some(tags);
+        self
+    }
+
     /// Include soft-deleted items
     #[must_use]
     pub fn include_deleted(mut self) -> Self {
@@ -93,6 +111,8 @@ mod tests {
         assert!(filters.priority.is_none());
         assert!(filters.priority_lte.is_none());
         assert!(filters.priority_gte.is_none());
+        assert!(filters.tags_any.is_none());
+        assert!(filters.tags_all.is_none());
         assert!(!filters.include_deleted);
         assert!(filters.limit.is_none());
         assert!(filters.offset.is_none());
@@ -196,5 +216,25 @@ mod tests {
         let debug = format!("{filters:?}");
         assert!(debug.contains("Filters"));
         assert!(debug.contains("open"));
+    }
+
+    #[test]
+    fn test_filters_with_tags_any() {
+        let filters = Filters::new().with_tags_any(vec!["bug".to_string(), "frontend".to_string()]);
+        assert_eq!(
+            filters.tags_any,
+            Some(vec!["bug".to_string(), "frontend".to_string()])
+        );
+        assert!(filters.tags_all.is_none());
+    }
+
+    #[test]
+    fn test_filters_with_tags_all() {
+        let filters = Filters::new().with_tags_all(vec!["bug".to_string(), "urgent".to_string()]);
+        assert_eq!(
+            filters.tags_all,
+            Some(vec!["bug".to_string(), "urgent".to_string()])
+        );
+        assert!(filters.tags_any.is_none());
     }
 }
