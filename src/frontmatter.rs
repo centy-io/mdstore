@@ -142,10 +142,17 @@ pub fn generate_frontmatter_raw(
         _ => yaml.to_string(),
     };
 
-    if body.is_empty() {
-        format!("---\n{fm_content}\n---\n\n# {title}\n")
+    let title_trimmed = title.trim();
+    if title_trimmed.is_empty() {
+        if body.is_empty() {
+            format!("---\n{fm_content}\n---\n")
+        } else {
+            format!("---\n{fm_content}\n---\n\n{body}\n")
+        }
+    } else if body.is_empty() {
+        format!("---\n{fm_content}\n---\n\n# {title_trimmed}\n")
     } else {
-        format!("---\n{fm_content}\n---\n\n# {title}\n\n{body}\n")
+        format!("---\n{fm_content}\n---\n\n# {title_trimmed}\n\n{body}\n")
     }
 }
 
@@ -175,10 +182,17 @@ pub fn generate_frontmatter<T: Serialize>(
         _ => yaml.to_string(),
     };
 
-    if body.is_empty() {
-        format!("---\n{fm_content}\n---\n\n# {title}\n")
+    let title_trimmed = title.trim();
+    if title_trimmed.is_empty() {
+        if body.is_empty() {
+            format!("---\n{fm_content}\n---\n")
+        } else {
+            format!("---\n{fm_content}\n---\n\n{body}\n")
+        }
+    } else if body.is_empty() {
+        format!("---\n{fm_content}\n---\n\n# {title_trimmed}\n")
     } else {
-        format!("---\n{fm_content}\n---\n\n# {title}\n\n{body}\n")
+        format!("---\n{fm_content}\n---\n\n# {title_trimmed}\n\n{body}\n")
     }
 }
 
@@ -375,6 +389,42 @@ Line 3.";
             extract_frontmatter_comment(content),
             Some("# Line 1\n# Line 2".to_string())
         );
+    }
+
+    #[test]
+    fn test_generate_frontmatter_empty_title_no_body() {
+        let metadata = TestMetadata {
+            display_number: 1,
+            status: "open".to_string(),
+            draft: false,
+        };
+        let result = generate_frontmatter(&metadata, "", "", None);
+        assert!(!result.contains("# "), "should not contain H1 heading");
+        assert!(result.starts_with("---\n"));
+    }
+
+    #[test]
+    fn test_generate_frontmatter_empty_title_with_body() {
+        let metadata = TestMetadata {
+            display_number: 1,
+            status: "open".to_string(),
+            draft: false,
+        };
+        let result = generate_frontmatter(&metadata, "", "body text here", None);
+        assert!(!result.contains("# "), "should not contain H1 heading");
+        assert!(result.contains("body text here"));
+    }
+
+    #[test]
+    fn test_generate_frontmatter_whitespace_only_title() {
+        let metadata = TestMetadata {
+            display_number: 1,
+            status: "open".to_string(),
+            draft: false,
+        };
+        let result = generate_frontmatter(&metadata, "   ", "body", None);
+        assert!(!result.contains("# "), "should not contain H1 heading");
+        assert!(result.contains("body"));
     }
 
     #[test]
