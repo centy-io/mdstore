@@ -97,6 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 status: t.default_status.clone(),
                 priority: if t.features.priority { Some(2) } else { None },
                 tags: None,
+                projects: None,
                 custom_fields: HashMap::new(),
                 comment: None,
             },
