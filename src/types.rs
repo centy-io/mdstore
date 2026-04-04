@@ -32,6 +32,11 @@ pub struct Frontmatter {
     /// Omitted when empty or not set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    /// Project slugs this item is associated with (e.g. `["frontend", "backend"]`).
+    /// Omitted when empty or not set. For regular per-project items this stays empty;
+    /// for org-wide items it is populated at creation time with the originating project's slug.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projects: Option<Vec<String>>,
     /// Custom fields for extensibility — flattened to the top level of the
     /// frontmatter so users editing files by hand can write `myField: value`
     /// directly without a `customFields:` wrapper.
@@ -69,6 +74,8 @@ pub struct CreateOptions {
     pub priority: Option<u32>,
     /// Free-form tags for categorization (None = no tags on create)
     pub tags: Option<Vec<String>>,
+    /// Project slugs this item is associated with (None = no projects on create)
+    pub projects: Option<Vec<String>>,
     /// Custom fields
     pub custom_fields: HashMap<String, serde_json::Value>,
     /// Optional YAML comment lines to write at the top of the frontmatter block
@@ -112,6 +119,8 @@ pub struct UpdateOptions {
     pub priority: Option<u32>,
     /// New tags (None = keep current; Some([]) = clear all tags; Some([...]) = replace)
     pub tags: Option<Vec<String>>,
+    /// New projects (None = keep current; Some([]) = clear all projects; Some([...]) = replace)
+    pub projects: Option<Vec<String>>,
     /// Custom fields to merge (existing keys are overwritten, new keys are added)
     pub custom_fields: HashMap<String, serde_json::Value>,
     /// New comment (None = preserve existing; Some("") = clear comment; Some(s) = replace)
@@ -149,6 +158,7 @@ mod tests {
             updated_at: "2024-01-01T00:00:00Z".to_string(),
             deleted_at: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -176,6 +186,7 @@ mod tests {
             updated_at: "2024-01-02T00:00:00Z".to_string(),
             deleted_at: Some("2024-01-03T00:00:00Z".to_string()),
             tags: Some(vec!["bug".to_string(), "frontend".to_string()]),
+            projects: Some(vec!["frontend".to_string()]),
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -200,6 +211,7 @@ mod tests {
             updated_at: "2024-06-15T13:00:00Z".to_string(),
             deleted_at: None,
             tags: Some(vec!["urgent".to_string()]),
+            projects: None,
             custom_fields: HashMap::new(),
         };
         let yaml = serde_yaml::to_string(&fm).unwrap();
@@ -216,6 +228,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };

@@ -135,6 +135,7 @@ pub async fn create(
         updated_at: now,
         deleted_at: None,
         tags: options.tags,
+        projects: options.projects,
         custom_fields: options.custom_fields,
     };
 
@@ -352,6 +353,15 @@ pub async fn update(
         };
     }
 
+    // Update projects if provided
+    if let Some(new_projects) = options.projects {
+        frontmatter.projects = if new_projects.is_empty() {
+            None
+        } else {
+            Some(new_projects)
+        };
+    }
+
     // Merge custom fields
     for (key, value) in &options.custom_fields {
         frontmatter.custom_fields.insert(key.clone(), value.clone());
@@ -544,6 +554,7 @@ pub async fn duplicate(
         updated_at: now,
         deleted_at: None,
         tags: source_item.frontmatter.tags.clone(),
+        projects: source_item.frontmatter.projects.clone(),
         custom_fields: source_item.frontmatter.custom_fields.clone(),
     };
 
@@ -733,6 +744,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -763,6 +775,7 @@ mod tests {
             status: None,
             priority: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -788,6 +801,7 @@ mod tests {
             status: None,
             priority: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -809,6 +823,7 @@ mod tests {
             status: Some("nonexistent".to_string()),
             priority: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -831,6 +846,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(99),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -860,6 +876,7 @@ mod tests {
                 status: Some(status.to_string()),
                 priority: Some(2),
                 tags: None,
+                projects: None,
                 custom_fields: HashMap::new(),
                 comment: None,
             };
@@ -900,6 +917,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -912,6 +930,7 @@ mod tests {
             status: Some("closed".to_string()),
             priority: Some(1),
             tags: None,
+            projects: None,
             custom_fields: HashMap::from([("env".to_string(), serde_json::json!("prod"))]),
             comment: None,
         };
@@ -955,6 +974,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -997,6 +1017,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1028,6 +1049,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1057,6 +1079,7 @@ mod tests {
                 status: Some("open".to_string()),
                 priority: Some(2),
                 tags: None,
+                projects: None,
                 custom_fields: HashMap::new(),
                 comment: None,
             };
@@ -1086,6 +1109,7 @@ mod tests {
                         status: Some("open".to_string()),
                         priority: Some(2),
                         tags: None,
+                        projects: None,
                         custom_fields: HashMap::new(),
                         comment: None,
                     };
@@ -1117,6 +1141,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(1),
             tags: None,
+            projects: None,
             custom_fields: HashMap::from([("key".to_string(), serde_json::json!("value"))]),
             comment: None,
         };
@@ -1159,6 +1184,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1195,6 +1221,7 @@ mod tests {
             status: None,
             priority: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1243,6 +1270,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(1),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1276,6 +1304,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(2),
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
             comment: None,
         };
@@ -1307,6 +1336,7 @@ mod tests {
             status: Some("open".to_string()),
             priority: Some(1),
             tags: None,
+            projects: None,
             custom_fields: HashMap::from([
                 ("draft".to_string(), serde_json::json!(true)),
                 ("env".to_string(), serde_json::json!("staging")),

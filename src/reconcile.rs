@@ -242,6 +242,7 @@ mod tests {
             updated_at: created_at.to_string(),
             deleted_at: None,
             tags: None,
+            projects: None,
             custom_fields: HashMap::new(),
         };
 
