@@ -208,6 +208,9 @@ mod tests {
         let cloned = filters.clone();
         assert_eq!(cloned.statuses, Some(vec!["open".to_string()]));
         assert_eq!(cloned.priority, Some(1));
+        // The clone must equal the original it was derived from.
+        assert_eq!(cloned.statuses, filters.statuses);
+        assert_eq!(cloned.priority, filters.priority);
     }
 
     #[test]
