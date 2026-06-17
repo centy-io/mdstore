@@ -11,7 +11,8 @@
         clippy::indexing_slicing,
         clippy::arithmetic_side_effects,
         clippy::panic_in_result_fn,
-        clippy::unwrap_in_result
+        clippy::unwrap_in_result,
+        clippy::todo
     )
 )]
 

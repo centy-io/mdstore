@@ -45,6 +45,9 @@ expect_used = "deny"
 panic_in_result_fn = "deny"
 unwrap_in_result = "deny"
 exit = "deny"
+# Deny `todo!()` placeholders, which panic at runtime if reached and would
+# otherwise bypass the panic/unwrap/expect denials above.
+todo = "deny"
 
 # Deny unvalidated arithmetic to prevent overflow panics in debug
 # and silent wrapping in release builds
