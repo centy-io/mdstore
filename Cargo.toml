@@ -54,6 +54,10 @@ arithmetic_side_effects = "deny"
 # Use safe alternatives like .get(), .first(), .split_at() which return Option
 indexing_slicing = "deny"
 
+# Deny direct string slicing (s[a..b]) which panics if a range boundary falls
+# inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
+string_slice = "deny"
+
 # Warn on long functions - enforces refactoring into smaller functions
 too_many_lines = "deny"
 
