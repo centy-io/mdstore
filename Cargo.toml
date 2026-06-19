@@ -60,6 +60,14 @@ dbg_macro = "deny"
 # `tracing` crate for diagnostics, mirroring the `dbg_macro` denial above.
 print_stdout = "deny"
 
+# Deny `eprint!`/`eprintln!` in library code, the companion to the
+# `print_stdout` denial above. A storage engine must not write to the
+# process's stderr either: that channel belongs to the consuming application,
+# which may surface its own diagnostics or errors there, and stray library
+# prints corrupt that stream while staying invisible to structured log
+# collectors. Route all diagnostics through the `tracing` crate instead.
+print_stderr = "deny"
+
 # Deny unvalidated arithmetic to prevent overflow panics in debug
 # and silent wrapping in release builds
 arithmetic_side_effects = "deny"
