@@ -2,6 +2,9 @@
 //!
 //! Run with: cargo run --example basic_crud
 
+// Examples intentionally print to stdout to demonstrate library output.
+#![allow(clippy::print_stdout)]
+
 use mdstore::config::IdStrategy;
 use mdstore::{CreateOptions, Filters, Item, TypeConfig, TypeFeatures, UpdateOptions};
 use std::collections::HashMap;
