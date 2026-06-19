@@ -79,6 +79,13 @@ too_many_lines = "deny"
 # wasting a heap allocation/deep copy. Use the original value directly.
 redundant_clone = "deny"
 
+# Deny `.clone()` on reference-counted pointers (Arc/Rc/Weak). `x.clone()`
+# only bumps the refcount, but reads like a potentially expensive deep clone.
+# Require the explicit `Arc::clone(&x)` / `Rc::clone(&x)` form (already used in
+# reconcile.rs and storage.rs) so a cheap refcount bump is never mistaken for a
+# deep copy at a glance.
+clone_on_ref_ptr = "deny"
+
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
