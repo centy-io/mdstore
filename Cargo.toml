@@ -49,6 +49,13 @@ exit = "deny"
 # otherwise bypass the panic/unwrap/expect denials above.
 todo = "deny"
 
+# Deny `unimplemented!()` placeholders. Like `todo!()`, this macro panics at
+# runtime if reached, bypassing the panic/unwrap/expect denials above. It marks
+# a code path the author never finished; shipping it in a storage engine turns a
+# missing implementation into a hard panic for the consuming application. Return
+# a proper `Error` variant instead.
+unimplemented = "deny"
+
 # Deny leftover `dbg!` debugging macros so stray debug output is never
 # shipped in the library. Use the `tracing` crate for intentional logging.
 dbg_macro = "deny"
