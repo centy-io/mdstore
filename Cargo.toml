@@ -49,6 +49,14 @@ exit = "deny"
 # otherwise bypass the panic/unwrap/expect denials above.
 todo = "deny"
 
+# Deny `unreachable!()`, which panics at runtime if the "impossible" branch is
+# ever reached — usually because an invariant the author assumed turned out to
+# be wrong. As a no-panic storage engine, mdstore must surface such cases as
+# recoverable `Err` values instead of aborting the consuming process. This
+# completes the set of panicking-macro denials alongside `panic`, `todo`,
+# `unwrap_used`, and `expect_used`.
+unreachable = "deny"
+
 # Deny leftover `dbg!` debugging macros so stray debug output is never
 # shipped in the library. Use the `tracing` crate for intentional logging.
 dbg_macro = "deny"
