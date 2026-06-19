@@ -5,6 +5,9 @@
 //!
 //! Run with: cargo run --example slug_docs
 
+// Examples intentionally print to stdout to demonstrate library output.
+#![allow(clippy::print_stdout)]
+
 use mdstore::config::IdStrategy;
 use mdstore::{CreateOptions, Filters, TypeConfig, TypeFeatures};
 use std::collections::HashMap;

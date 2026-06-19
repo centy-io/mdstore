@@ -53,6 +53,13 @@ todo = "deny"
 # shipped in the library. Use the `tracing` crate for intentional logging.
 dbg_macro = "deny"
 
+# Deny `print!`/`println!` in library code. As a storage engine, mdstore must
+# never write to the process's stdout — that channel belongs to the consuming
+# application, which may rely on it for its own CLI output or piped data. Stray
+# prints corrupt that stream and are invisible in structured logs. Use the
+# `tracing` crate for diagnostics, mirroring the `dbg_macro` denial above.
+print_stdout = "deny"
+
 # Deny unvalidated arithmetic to prevent overflow panics in debug
 # and silent wrapping in release builds
 arithmetic_side_effects = "deny"

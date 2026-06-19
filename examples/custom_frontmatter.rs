@@ -5,6 +5,9 @@
 //!
 //! Run with: cargo run --example custom_frontmatter
 
+// Examples intentionally print to stdout to demonstrate library output.
+#![allow(clippy::print_stdout)]
+
 use mdstore::{generate_frontmatter, parse_frontmatter};
 use serde::{Deserialize, Serialize};
 

@@ -6,6 +6,9 @@
 //!
 //! Run with: cargo run --example discover_types
 
+// Examples intentionally print to stdout to demonstrate library output.
+#![allow(clippy::print_stdout)]
+
 use mdstore::config::{write_type_config, CustomFieldDef, IdStrategy};
 use mdstore::{discover_types, TypeConfig, TypeFeatures};
 use std::path::Path;
