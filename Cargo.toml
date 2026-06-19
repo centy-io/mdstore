@@ -46,6 +46,10 @@ panic_in_result_fn = "deny"
 unwrap_in_result = "deny"
 exit = "deny"
 
+# Deny leftover `dbg!` debugging macros so stray debug output is never
+# shipped in the library. Use the `tracing` crate for intentional logging.
+dbg_macro = "deny"
+
 # Deny unvalidated arithmetic to prevent overflow panics in debug
 # and silent wrapping in release builds
 arithmetic_side_effects = "deny"
