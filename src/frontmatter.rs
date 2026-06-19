@@ -109,7 +109,7 @@ pub fn extract_frontmatter_comment(content: &str) -> Option<String> {
     }
     let rest = content.get(3..)?.trim_start_matches('\n');
     let end = rest.find("\n---")?;
-    let fm_block = &rest[..end];
+    let fm_block = rest.get(..end)?;
 
     let mut comment_lines: Vec<&str> = Vec::new();
     for line in fm_block.lines() {
