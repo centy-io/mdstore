@@ -86,6 +86,14 @@ redundant_clone = "deny"
 # deep copy at a glance.
 clone_on_ref_ptr = "deny"
 
+# Deny `let _ = <#[must_use] expr>;`, which silently discards a value the
+# compiler marked as must-use — most importantly a `Result`. Unlike the
+# panic/unwrap denials above, this catches errors that are thrown away without
+# any handling at all (no `?`, no match, no log), making a failed operation
+# invisible. The fix is explicit: handle the `Result`, or annotate intent with
+# `let _: () = ...` / `drop(...)` for genuinely ignorable must-use values.
+let_underscore_must_use = "deny"
+
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
