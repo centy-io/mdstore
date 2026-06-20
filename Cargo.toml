@@ -72,6 +72,12 @@ indexing_slicing = "deny"
 # inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
 string_slice = "deny"
 
+# Deny `if cond { Some(x) } else { None }`, which reads as a branch but is only
+# a boolean-to-Option conversion. Use `cond.then(|| x)` / `cond.then_some(x)` so
+# the intent — "produce a value only when the condition holds" — is explicit and
+# the value isn't buried inside an if/else.
+if_then_some_else_none = "deny"
+
 # Warn on long functions - enforces refactoring into smaller functions
 too_many_lines = "deny"
 
