@@ -87,6 +87,15 @@ indexing_slicing = "deny"
 # inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
 string_slice = "deny"
 
+# Deny `FileType::is_file()` for directory-scan guards. As a filesystem-backed
+# storage engine, mdstore walks type directories with `read_dir`, where the
+# entry's `FileType` reflects the entry itself and is NOT followed for symlinks.
+# `!is_file()` therefore silently skips a symlink that points at a real `.md`
+# item file, hiding that item from `list`/reconcile. Test the directory case
+# directly with `is_dir()` so only true subdirectories are skipped and symlinked
+# item files are still read.
+filetype_is_file = "deny"
+
 # Deny `if cond { Some(x) } else { None }`, which reads as a branch but is only
 # a boolean-to-Option conversion. Use `cond.then(|| x)` / `cond.then_some(x)` so
 # the intent — "produce a value only when the condition holds" — is explicit and

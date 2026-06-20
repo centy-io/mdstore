@@ -190,7 +190,7 @@ pub async fn list(type_dir: &Path, filters: Filters) -> Result<Vec<Item>, StoreE
     let mut entries = fs::read_dir(type_dir).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
 
