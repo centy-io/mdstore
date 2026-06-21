@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 body: format!("This is a sample {} item.", t.name.to_lowercase()),
                 id: None,
                 status: t.default_status.clone(),
-                priority: if t.features.priority { Some(2) } else { None },
+                priority: t.features.priority.then_some(2),
                 tags: None,
                 projects: None,
                 custom_fields: HashMap::new(),

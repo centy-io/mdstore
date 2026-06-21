@@ -58,6 +58,12 @@ todo = "deny"
 # information" discipline as the panic/unwrap/expect denials above to error
 # mapping.
 map_err_ignore = "deny"
+# Deny `unimplemented!()` placeholders. Like `todo!()`, this macro panics at
+# runtime if reached, bypassing the panic/unwrap/expect denials above. It marks
+# a code path the author never finished; shipping it in a storage engine turns a
+# missing implementation into a hard panic for the consuming application. Return
+# a proper `Error` variant instead.
+unimplemented = "deny"
 
 # Deny leftover `dbg!` debugging macros so stray debug output is never
 # shipped in the library. Use the `tracing` crate for intentional logging.
@@ -70,6 +76,14 @@ dbg_macro = "deny"
 # `tracing` crate for diagnostics, mirroring the `dbg_macro` denial above.
 print_stdout = "deny"
 
+# Deny `eprint!`/`eprintln!` in library code, the companion to the
+# `print_stdout` denial above. A storage engine must not write to the
+# process's stderr either: that channel belongs to the consuming application,
+# which may surface its own diagnostics or errors there, and stray library
+# prints corrupt that stream while staying invisible to structured log
+# collectors. Route all diagnostics through the `tracing` crate instead.
+print_stderr = "deny"
+
 # Deny unvalidated arithmetic to prevent overflow panics in debug
 # and silent wrapping in release builds
 arithmetic_side_effects = "deny"
@@ -81,6 +95,12 @@ indexing_slicing = "deny"
 # Deny direct string slicing (s[a..b]) which panics if a range boundary falls
 # inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
 string_slice = "deny"
+
+# Deny `if cond { Some(x) } else { None }`, which reads as a branch but is only
+# a boolean-to-Option conversion. Use `cond.then(|| x)` / `cond.then_some(x)` so
+# the intent — "produce a value only when the condition holds" — is explicit and
+# the value isn't buried inside an if/else.
+if_then_some_else_none = "deny"
 
 # Warn on long functions - enforces refactoring into smaller functions
 too_many_lines = "deny"
@@ -95,6 +115,14 @@ redundant_clone = "deny"
 # reconcile.rs and storage.rs) so a cheap refcount bump is never mistaken for a
 # deep copy at a glance.
 clone_on_ref_ptr = "deny"
+
+# Deny `let _ = <#[must_use] expr>;`, which silently discards a value the
+# compiler marked as must-use — most importantly a `Result`. Unlike the
+# panic/unwrap denials above, this catches errors that are thrown away without
+# any handling at all (no `?`, no match, no log), making a failed operation
+# invisible. The fix is explicit: handle the `Result`, or annotate intent with
+# `let _: () = ...` / `drop(...)` for genuinely ignorable must-use values.
+let_underscore_must_use = "deny"
 
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
