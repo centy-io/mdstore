@@ -115,6 +115,14 @@ clone_on_ref_ptr = "deny"
 # `let _: () = ...` / `drop(...)` for genuinely ignorable must-use values.
 let_underscore_must_use = "deny"
 
+# Deny `.map_err(|_| ...)`, which throws away the original error and replaces it
+# with a hand-written message. The discarded error often carries the only
+# specifics about *why* an operation failed (the offending value, an OS errno, a
+# parse position); dropping it makes failures harder to diagnose in a storage
+# engine that callers can't step through. Bind the error (`|e| ...`) and include
+# it in the replacement, mirroring the parse-error context in reconcile.rs.
+map_err_ignore = "deny"
+
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
