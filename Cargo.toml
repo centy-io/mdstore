@@ -124,6 +124,17 @@ clone_on_ref_ptr = "deny"
 # `let _: () = ...` / `drop(...)` for genuinely ignorable must-use values.
 let_underscore_must_use = "deny"
 
+# Deny `mem::forget(value)`, which takes ownership of a value and skips running
+# its `Drop` impl. In a file-based storage engine many owned values flush
+# buffered writes, release file locks, close handles or remove temp files in
+# `Drop`; forgetting one silently skips that cleanup, turning a "forgotten"
+# value into data loss or a stuck lock with no error, panic or log. This extends
+# the same never-fail-silently discipline as `let_underscore_must_use` above to
+# destructors. No `mem::forget` calls exist today, so `deny` is a zero-violation
+# guardrail; a rare legitimate leak (e.g. handing ownership to FFI) can opt out
+# locally with `#[allow(clippy::mem_forget)]` plus a justifying comment.
+mem_forget = "deny"
+
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
