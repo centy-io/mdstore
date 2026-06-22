@@ -87,6 +87,15 @@ indexing_slicing = "deny"
 # inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
 string_slice = "deny"
 
+# Deny verbose file reads: a manual `File::open(..)` followed by `read_to_end` /
+# `read_to_string` is longer and easier to get wrong (forgotten buffer reuse,
+# partial reads) than the one-shot `fs::read(..)` / `fs::read_to_string(..)`.
+# As a file-based storage engine, mdstore reads files throughout (config.rs,
+# reconcile.rs, storage.rs) and already uses the concise `fs::read_to_string`
+# form. This lint locks that idiom in so no future code regresses to the
+# verbose, error-prone open-then-read pattern.
+verbose_file_reads = "deny"
+
 # Deny `if cond { Some(x) } else { None }`, which reads as a branch but is only
 # a boolean-to-Option conversion. Use `cond.then(|| x)` / `cond.then_some(x)` so
 # the intent — "produce a value only when the condition holds" — is explicit and
