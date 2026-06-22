@@ -49,6 +49,15 @@ exit = "deny"
 # otherwise bypass the panic/unwrap/expect denials above.
 todo = "deny"
 
+# Deny `.map_err(|_| ...)` that discards the original error with a wildcard
+# pattern. As a storage engine, mdstore wraps low-level I/O, parse and
+# timestamp errors into its own error type; throwing away the underlying cause
+# erases the detail a caller needs to diagnose a failure (e.g. *why* a
+# timestamp or YAML payload was rejected). Bind the error and fold it into the
+# new error's message or source instead. Extends the same "never lose error
+# information" discipline as the panic/unwrap/expect denials above to error
+# mapping.
+map_err_ignore = "deny"
 # Deny `unimplemented!()` placeholders. Like `todo!()`, this macro panics at
 # runtime if reached, bypassing the panic/unwrap/expect denials above. It marks
 # a code path the author never finished; shipping it in a storage engine turns a
