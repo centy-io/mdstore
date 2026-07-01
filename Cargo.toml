@@ -48,6 +48,12 @@ exit = "deny"
 # Deny `todo!()` placeholders, which panic at runtime if reached and would
 # otherwise bypass the panic/unwrap/expect denials above.
 todo = "deny"
+# Deny `unreachable!()`, which is a panic in disguise: if the branch the
+# author believed was impossible is ever reached, the program aborts instead
+# of surfacing a recoverable `Error`. Closes the last panicking macro not yet
+# covered by the denials above, keeping the storage engine's no-panic
+# guarantee complete.
+unreachable = "deny"
 
 # Deny `.map_err(|_| ...)` that discards the original error with a wildcard
 # pattern. As a storage engine, mdstore wraps low-level I/O, parse and
