@@ -428,6 +428,24 @@ Line 3.";
     }
 
     #[test]
+    fn test_generate_frontmatter_raw_empty_title_no_body() {
+        let value: serde_yaml::Value =
+            serde_yaml::from_str("displayNumber: 1\nstatus: open\n").unwrap();
+        let result = generate_frontmatter_raw(&value, "", "", None);
+        assert!(!result.contains("# "), "should not contain H1 heading");
+        assert!(result.starts_with("---\n"));
+    }
+
+    #[test]
+    fn test_generate_frontmatter_raw_whitespace_only_title_with_body() {
+        let value: serde_yaml::Value =
+            serde_yaml::from_str("displayNumber: 1\nstatus: open\n").unwrap();
+        let result = generate_frontmatter_raw(&value, "   ", "comment body", None);
+        assert!(!result.contains("# "), "should not contain H1 heading");
+        assert!(result.contains("comment body"));
+    }
+
+    #[test]
     fn test_escape_yaml_string() {
         assert_eq!(escape_yaml_string("hello"), "hello");
         assert_eq!(escape_yaml_string(r#"say "hi""#), r#"say \"hi\""#);
