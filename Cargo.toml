@@ -48,7 +48,22 @@ exit = "deny"
 # Deny `todo!()` placeholders, which panic at runtime if reached and would
 # otherwise bypass the panic/unwrap/expect denials above.
 todo = "deny"
+# Deny `unreachable!()`, which is a panic in disguise: if the branch the
+# author believed was impossible is ever reached, the program aborts instead
+# of surfacing a recoverable `Error`. Closes the last panicking macro not yet
+# covered by the denials above, keeping the storage engine's no-panic
+# guarantee complete.
+unreachable = "deny"
 
+# Deny `.map_err(|_| ...)` that discards the original error with a wildcard
+# pattern. As a storage engine, mdstore wraps low-level I/O, parse and
+# timestamp errors into its own error type; throwing away the underlying cause
+# erases the detail a caller needs to diagnose a failure (e.g. *why* a
+# timestamp or YAML payload was rejected). Bind the error and fold it into the
+# new error's message or source instead. Extends the same "never lose error
+# information" discipline as the panic/unwrap/expect denials above to error
+# mapping.
+map_err_ignore = "deny"
 # Deny `unimplemented!()` placeholders. Like `todo!()`, this macro panics at
 # runtime if reached, bypassing the panic/unwrap/expect denials above. It marks
 # a code path the author never finished; shipping it in a storage engine turns a
@@ -87,6 +102,15 @@ indexing_slicing = "deny"
 # inside a multi-byte UTF-8 character. Use s.get(a..b) which returns Option.
 string_slice = "deny"
 
+# Deny verbose file reads: a manual `File::open(..)` followed by `read_to_end` /
+# `read_to_string` is longer and easier to get wrong (forgotten buffer reuse,
+# partial reads) than the one-shot `fs::read(..)` / `fs::read_to_string(..)`.
+# As a file-based storage engine, mdstore reads files throughout (config.rs,
+# reconcile.rs, storage.rs) and already uses the concise `fs::read_to_string`
+# form. This lint locks that idiom in so no future code regresses to the
+# verbose, error-prone open-then-read pattern.
+verbose_file_reads = "deny"
+
 # Deny `FileType::is_file()` for directory-scan guards. As a filesystem-backed
 # storage engine, mdstore walks type directories with `read_dir`, where the
 # entry's `FileType` reflects the entry itself and is NOT followed for symlinks.
@@ -123,6 +147,17 @@ clone_on_ref_ptr = "deny"
 # invisible. The fix is explicit: handle the `Result`, or annotate intent with
 # `let _: () = ...` / `drop(...)` for genuinely ignorable must-use values.
 let_underscore_must_use = "deny"
+
+# Deny `mem::forget(value)`, which takes ownership of a value and skips running
+# its `Drop` impl. In a file-based storage engine many owned values flush
+# buffered writes, release file locks, close handles or remove temp files in
+# `Drop`; forgetting one silently skips that cleanup, turning a "forgotten"
+# value into data loss or a stuck lock with no error, panic or log. This extends
+# the same never-fail-silently discipline as `let_underscore_must_use` above to
+# destructors. No `mem::forget` calls exist today, so `deny` is a zero-violation
+# guardrail; a rare legitimate leak (e.g. handing ownership to FFI) can opt out
+# locally with `#[allow(clippy::mem_forget)]` plus a justifying comment.
+mem_forget = "deny"
 
 # Allow noisy pedantic lints
 missing_errors_doc = "allow"

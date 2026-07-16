@@ -146,9 +146,9 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
             let created_at_str = &frontmatter.created_at;
             let created_at = DateTime::parse_from_rfc3339(created_at_str)
                 .map(|dt| dt.to_utc())
-                .map_err(|_| {
+                .map_err(|e| {
                     StoreError::Custom(format!(
-                        "Invalid created_at timestamp '{created_at_str}' in item '{item_id}'"
+                        "Invalid created_at timestamp '{created_at_str}' in item '{item_id}': {e}"
                     ))
                 })?;
             items.push(ItemInfo {
