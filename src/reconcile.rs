@@ -76,7 +76,7 @@ pub async fn get_next_display_number(type_dir: &Path) -> Result<u32, StoreError>
     let mut entries = fs::read_dir(type_dir).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
 
@@ -118,7 +118,7 @@ pub async fn reconcile_display_numbers(type_dir: &Path) -> Result<u32, StoreErro
     let mut entries = fs::read_dir(type_dir).await?;
 
     while let Some(entry) = entries.next_entry().await? {
-        if !entry.file_type().await?.is_file() {
+        if entry.file_type().await?.is_dir() {
             continue;
         }
 

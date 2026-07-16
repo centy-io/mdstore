@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Stricter Clippy lint baseline to catch latent bugs and tighten code quality: enabled `clippy::clone_on_ref_ptr`, `clippy::print_stdout`, `clippy::dbg_macro`, `clippy::string_slice`, `clippy::todo`, and `clippy::redundant_clone` (#26, #28, #30, #32, #34, #36)
+- Enabled `clippy::filetype_is_file` and switched directory-scan guards in `list`, `get_next_display_number`, and `reconcile_display_numbers` from `!is_file()` to `is_dir()`, so symlinked `.md` item files are no longer silently skipped (#50)
 
 ## [1.2.0] - 2026-04-04
 
