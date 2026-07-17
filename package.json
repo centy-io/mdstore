@@ -1,4 +1,5 @@
 {
+  "name": "mdstore",
   "private": true,
   "scripts": {
     "prepare": "husky"
