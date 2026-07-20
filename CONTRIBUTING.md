@@ -61,7 +61,7 @@ Every push and pull request to `main` runs:
 - `cargo clippy` with project lint rules
 - `cargo test`
 - `cargo build`
-- MSRV build and test (Rust 1.70)
+- MSRV build and test (Rust 1.85)
 - `cargo package` dry-run
 
 ## Publishing
