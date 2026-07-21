@@ -70,3 +70,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo package --list
       - run: cargo package
+
+  linecheck:
+    name: Linecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install linecheck
+        run: cargo install linecheck
+      - name: Run linecheck
+        run: linecheck .
