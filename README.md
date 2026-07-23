@@ -36,7 +36,10 @@ Users are experiencing timeouts after 30 seconds of inactivity.
 - [**Basic CRUD**](examples/basic_crud.rs) -- create, read, update, list, soft-delete, restore, and hard-delete items
 - [**Slug-based docs**](examples/slug_docs.rs) -- human-readable slug identifiers derived from titles
 - [**Type discovery**](examples/type_discovery.rs) -- write, read, and discover type configs from YAML files
+- [**Discover types**](examples/discover_types.rs) -- scan a base directory and return the `TypeConfig` for every subdirectory
+- [**Discover types map**](examples/discover_types_map.rs) -- scan a base directory and return a folder-keyed `HashMap` of `TypeConfig`
 - [**Custom frontmatter**](examples/custom_frontmatter.rs) -- use the frontmatter parser standalone with any serde type
+- [**Frontmatter comment**](examples/frontmatter_comment.rs) -- optional comment support at the top of frontmatter blocks
 
 Run any example with:
 
